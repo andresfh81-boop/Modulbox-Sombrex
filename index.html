@@ -1,0 +1,2799 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configurador MODULBOX Sombrex – Soportes y Brazos a Escala Real</title>
+
+  <!-- Vinculación con el manifiesto de la PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#c0102e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MODULBOX">
+  <link rel="icon" href="./icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="./icon-180.png">
+
+  <style>
+    :root {
+      --primary: #c0102e;
+      --primary-hover: #a00d26;
+      --bg-color: #f4f6f8;
+      --panel-bg: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border-color: #d1d5db;
+      --border-radius: 12px;
+      --focus-ring: rgba(192, 16, 46, 0.15);
+      --error-bg: #fef2f2;
+      --error-border: #fca5a5;
+      --success-bg: #f0fdf4;
+      --success-border: #86efac;
+    }
+
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+    body { margin: 0; background: var(--bg-color); color: var(--text-main); -webkit-font-smoothing: antialiased; line-height: 1.5; }
+
+    header { background: var(--primary); color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+    header span { font-size: 0.85rem; opacity: 0.9; display: block; margin-top: 2px; }
+
+    .lang-switcher { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    .lang-btn { margin-top: 0; width: auto; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s; }
+    .lang-btn.active { background: rgba(255,255,255,0.25); border-color: #fff; }
+    .lang-btn:hover { background: rgba(255,255,255,0.2); }
+
+    .offline-banner { display: none; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; text-align: center; }
+    .offline-banner.show { display: block; }
+    .install-banner { display: none; align-items: center; gap: 10px; background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; }
+    .install-banner.show { display: flex; }
+    .install-banner button { margin: 0; width: auto; padding: 6px 14px; font-size: 0.8rem; background: #ea580c; }
+    .install-banner button:hover { background: #c2410c; }
+
+    .wrap { display: flex; gap: 24px; padding: 24px; flex-wrap: wrap; max-width: 1400px; margin: 0 auto; }
+
+    .panel { background: var(--panel-bg); border-radius: var(--border-radius); padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05); }
+    .form { flex: 1 1 380px; max-width: 460px; position: relative; }
+    .plan { flex: 2 1 600px; min-width: 300px; display: flex; flex-direction: column; }
+
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin: 16px 0 6px; color: var(--text-main); }
+
+    input, textarea, select {
+      width: 100%; padding: 10px 12px;
+      border: 1px solid var(--border-color); border-radius: 6px;
+      font-size: 0.95rem; background-color: #fff; color: var(--text-main);
+      transition: all 0.2s ease; font-family: inherit;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--focus-ring);
+    }
+    input.error, select.error, textarea.error {
+      border-color: #f87171 !important; background-color: #fef2f2 !important;
+    }
+
+    textarea { resize: vertical; min-height: 60px; }
+
+    .row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .row > div { flex: 1; min-width: 140px; }
+
+    .form-section {
+      background: #f8f9fa; border: 1px solid var(--border-color);
+      border-radius: 8px; padding: 14px 16px; margin-top: 20px;
+    }
+    .form-section h3 { margin: 0 0 10px 0; font-size: 0.85rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+
+    .brazo-item {
+      display: flex; align-items: center; gap: 12px; background: #fff;
+      padding: 12px 14px; border-radius: 8px; margin-bottom: 10px;
+      border: 1px solid var(--border-color); flex-wrap: wrap;
+    }
+    .brazo-item label { margin: 0; min-width: 60px; font-size: 0.9rem; color: var(--text-muted); }
+    .brazo-item select, .brazo-item input { flex: 1; min-width: 120px; }
+
+    .btn-group { display: flex; gap: 12px; margin-top: 24px; }
+    .btn-group button { margin-top: 0; flex: 1; }
+
+    button {
+      margin-top: 24px; width: 100%; padding: 14px;
+      border: 0; border-radius: 8px; background: #1f2937;
+      color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    button:hover  { background: #111827; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    button:active { transform: translateY(0); }
+    button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    button.secondary { background: #6b7280; margin-top: 12px; }
+    button.secondary:hover { background: #4b5563; }
+    button.export { background: #10b981; margin-top: 12px; }
+    button.export:hover { background: #059669; }
+    button.pdf { background: #2563eb; margin-top: 12px; }
+    button.pdf:hover { background: #1d4ed8; }
+    button.clear { background: #ef4444; margin-top: 12px; }
+    button.clear:hover { background: #dc2626; }
+
+    .alert { padding: 14px 16px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem; }
+    .alert div { margin-bottom: 4px; }
+    .alert div:last-child { margin-bottom: 0; }
+    .alert.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+    .alert.danger { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+
+    .plan-header {
+      display: flex; justify-content: space-between; gap: 12px; align-items: center;
+      border-bottom: 2px solid var(--primary); padding-bottom: 12px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .plan-meta { color: var(--text-muted); font-size: 0.85rem; text-align: right; }
+    .plan-meta b { color: var(--text-main); }
+
+    svg { display: block; width: 100%; height: auto; }
+
+    .summary-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85rem; }
+    .summary-table th { text-align: left; padding: 6px 10px; border: 1px solid var(--border-color); background: #f3f4f6; font-weight: 600; color: var(--text-muted); }
+    .summary-table td { padding: 6px 10px; border: 1px solid var(--border-color); }
+    .summary-table tr:hover td { background: #fafafa; }
+
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+    .badge-pared  { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+    .badge-izq    { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
+    .badge-der    { background: #ecfdf5; color: #10b981; border: 1px solid #a7f3d0; }
+    .badge-motor  { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    .badge-lira     { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+    .badge-lira-posterior { background: #ecfeff; color: #0891b2; border: 1px solid #a5f3fc; }
+    .badge-lira-cofre     { background: #fdf4ff; color: #c026d3; border: 1px solid #f5d0fe; }
+    .badge-inferior { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+
+    .plan-notes-container { margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 14px; }
+    .plan-notes-container label { margin-top: 0; color: var(--text-main); font-size: 0.9rem; font-weight: 600; }
+    .plan-notes-container textarea { min-height: 70px; font-size: 0.9rem; background: #f8f9fa; }
+
+    .notification {
+      position: fixed; bottom: 20px; right: 20px; padding: 12px 18px;
+      background: #10b981; color: #fff; border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1); opacity: 0;
+      transform: translateY(20px); transition: opacity .25s ease, transform .25s ease;
+      z-index: 1000; pointer-events: none;
+    }
+    .notification.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 768px) {
+      .wrap { padding: 12px; gap: 16px; }
+      .form, .plan { max-width: 100%; flex: 1 1 100%; }
+      .btn-group { flex-direction: column; }
+      header { flex-wrap: wrap; }
+      .lang-switcher { margin-left: 0; flex-wrap: wrap; }
+    }
+
+    /* Filas y bloques que SOLO aparecen en la copia de taller (btnPrintTaller).
+       La versión cliente (pantalla, impresión y PDF/PNG) solo muestra soportes de PARED. */
+    .taller-only { display: none !important; }
+
+    @media print {
+      @page { size: landscape; margin: 10mm; }
+      header, .form, .no-print, .btn-group, .notification, .col-taller { display: none !important; }
+      body { background: #fff; }
+      .wrap { padding: 0; display: block; }
+      .plan { box-shadow: none; border: none; padding: 0; background: #fff; }
+      .plan-notes-container { border: none; padding: 14px 0 0 0; }
+      .plan-notes-container textarea { border: none; background: transparent; padding: 0; resize: none; overflow: hidden; }
+      /* Copia para taller (btnPrintTaller): invierte qué columnas de cota se ven
+         y recupera las filas/bloques que en la versión cliente están ocultos. */
+      body.print-taller .col-taller { display: table-cell !important; }
+      body.print-taller .col-cliente { display: none !important; }
+      body.print-taller tr.taller-only { display: table-row !important; }
+      body.print-taller .terminal-table.taller-only { display: block !important; }
+    }
+  </style>
+</head>
+
+<body>
+<header>
+<svg width="46" height="34" viewBox="0 0 120 80">
+<ellipse cx="60" cy="40" rx="56" ry="30" fill="none" stroke="#fff" stroke-width="5"/>
+<path d="M14 40 Q60 18 106 40 Q60 62 14 40 Z" fill="#fff"/>
+</svg>
+<div>
+  <h1 id="txtTitleMain">Configurador MODULBOX Sombrex</h1>
+  <span id="txtSubtitleMain">Brazos a Escala Real Onyx (+100mm) con simulación visual de cruce e impacto</span>
+</div>
+<div class="lang-switcher">
+  <button id="btnLangES" class="lang-btn active">ES</button>
+  <button id="btnLangEN" class="lang-btn">EN</button>
+  <button id="btnLangFR" class="lang-btn">FR</button>
+  <button id="btnLangDE" class="lang-btn">DE</button>
+  <button id="btnLangIT" class="lang-btn">IT</button>
+  <button id="btnLangPT" class="lang-btn">PT</button>
+</div>
+</header>
+
+<div class="wrap">
+  <div class="panel form no-print">
+    <div id="offlineBanner" class="offline-banner">Sin conexión — la app sigue funcionando con los datos guardados en el dispositivo.</div>
+    <div id="installBanner" class="install-banner">
+      <span id="installMsg" style="flex:1;">Instala esta app en tu móvil para usarla sin conexión.</span>
+      <button id="btnInstall" type="button">Instalar</button>
+    </div>
+    <div class="row">
+      <div>
+        <label id="lblPedido" for="pedido">📋 Nº Pedido</label>
+        <input id="pedido" type="text" placeholder="Ej. 12345" />
+      </div>
+      <div>
+        <label id="lblCliente" for="cliente">👤 Cliente</label>
+        <input id="cliente" type="text" placeholder="Nombre del cliente" />
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3 id="secDim">Dimensiones y Motorización</h3>
+      <div class="row">
+        <div>
+          <label id="lblModelo" for="modelo">🏗️ Modelo</label>
+          <select id="modelo">
+            <option value="OPEN">OPEN</option>
+            <option value="SemiOPEN">Semi OPEN</option>
+            <option value="SemiBOX" selected>Semi BOX</option>
+            <option value="FullBOX">Full BOX</option>
+          </select>
+        </div>
+        <div>
+          <label id="lblMaquina" for="maquina">⚙️ Máquina (Gearbox)</label>
+          <select id="maquina">
+            <option id="optMaquinaSi" value="SI">Sí / Yes</option>
+            <option id="optMaquinaNo" value="NO" selected>No</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label id="lblLinea" for="linea">Línea L (mm)</label>
+          <input id="linea" type="number" min="0" placeholder="Ej. 6000" />
+        </div>
+        <div>
+          <label id="lblSalida" for="salida">Salida S (mm)</label>
+          <select id="salida">
+            <option value="1500">1,50 MTS (1500 mm)</option>
+            <option value="1750">1,75 MTS (1750 mm)</option>
+            <option value="2000" selected>2,00 MTS (2000 mm)</option>
+            <option value="2250">2,25 MTS (2250 mm)</option>
+            <option value="2500">2,50 MTS (2500 mm)</option>
+            <option value="2750">2,75 MTS (2750 mm)</option>
+            <option value="3000">3,00 MTS (3000 mm)</option>
+            <option value="3250">3,25 MTS (3250 mm)</option>
+            <option value="3500">3,50 MTS (3500 mm)</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label id="lblLadoMotor" for="ladoMotor">⚡ Lado del Motor</label>
+          <select id="ladoMotor">
+            <option id="optMotorIzq" value="izq">Izquierda (I) / Left (L)</option>
+            <option id="optMotorDer" value="der">Derecha (D) / Right (R)</option>
+          </select>
+        </div>
+        <div>
+          <label id="lblHolgura" for="holgura">🔧 Holgura seg. (mm)</label>
+          <input id="holgura" type="number" min="0" value="50" placeholder="Ej. 50" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label id="lblGrosorTapa" for="grosorTapa">🧵 Grosor de tapa (mm)</label>
+          <input id="grosorTapa" type="number" min="0" value="19" placeholder="Ej. 19" />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3 id="secSoportes">Colocación de soportes</h3>
+      <label id="lblNumBrazos" for="numBrazos">💪 Número de brazos (2–4)</label>
+      <select id="numBrazos">
+        <option id="optNumBrazosVacio" value="">— Elegir / Choose —</option>
+        <option id="optNumBrazos2" value="2">2 brazos</option>
+        <option id="optNumBrazos3" value="3">3 brazos</option>
+        <option id="optNumBrazos4" value="4">4 brazos</option>
+      </select>
+
+      <label for="brazosCruzados"><span id="lblBC">✖️ Brazos Cruzados</span> <span id="lblBCnota" style="font-weight:400; color: var(--text-muted);">(solo 2 brazos)</span></label>
+      <select id="brazosCruzados">
+        <option id="optBCNo" value="NO" selected>No</option>
+        <option id="optBCSi" value="SI">Sí / Yes</option>
+      </select>
+
+      <div id="brazosContainer" style="margin-top: 12px;"></div>
+      <button id="btnCalcularBrazos" class="secondary" type="button" style="margin-top:8px;">📐 Calcular posición brazos</button>
+
+      <label id="lblCasPared" for="cotasPared">📍 Soportes de PARED (mm, sep. por comas o saltos)</label>
+      <textarea id="cotasPared" placeholder="Ejemplo: 250, 3000, 5750"></textarea>
+      <button id="btnSugerir" class="secondary" type="button" style="margin-top:8px;">🧮 Sugerir soportes</button>
+    </div>
+
+    <div class="form-section">
+      <h3 id="secPerfiles">Perfiles tejadillo/lira e inferior</h3>
+
+      <div class="row">
+        <div>
+          <label for="perfilTejadillo"><span id="lblPerfilTejadillo">🏠 Tejadillo</span></label>
+          <select id="perfilTejadillo">
+            <option id="optTejadilloNo" value="NO" selected>No</option>
+            <option id="optTejadilloSi" value="SI">Sí</option>
+          </select>
+        </div>
+        <div>
+          <label id="lblNumTejadillo" for="numTejadillo">Nº soportes</label>
+          <input id="numTejadillo" type="number" min="0" placeholder="Sugerido">
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="perfilLiraPosterior"><span id="lblPerfilLiraPosterior">🏠 Perfil Lira Posterior</span></label>
+          <select id="perfilLiraPosterior">
+            <option id="optLiraPosteriorNo" value="NO" selected>No</option>
+            <option id="optLiraPosteriorSi" value="SI">Sí</option>
+          </select>
+        </div>
+        <div>
+          <label id="lblNumLiraPosterior" for="numLiraPosterior">Nº soportes</label>
+          <input id="numLiraPosterior" type="number" min="0" placeholder="Sugerido">
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="perfilLiraCofre"><span id="lblPerfilLiraCofre">🏠 Perfil Lira/Cofre</span></label>
+          <select id="perfilLiraCofre">
+            <option id="optLiraCofreNo" value="NO" selected>No</option>
+            <option id="optLiraCofreSi" value="SI">Sí</option>
+          </select>
+        </div>
+        <div>
+          <label id="lblNumLiraCofre" for="numLiraCofre">Nº soportes</label>
+          <input id="numLiraCofre" type="number" min="0" placeholder="Sugerido">
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="perfilInferior"><span id="lblPerfilInferior">🏠 Perfil Inferior</span> <span id="lblPerfilInferiorNota" style="font-weight:400; color: var(--text-muted);">(solo FullBOX)</span></label>
+          <select id="perfilInferior" disabled>
+            <option id="optInferiorNo" value="NO" selected>No</option>
+            <option id="optInferiorSi" value="SI">Sí</option>
+          </select>
+        </div>
+        <div>
+          <label id="lblNumInferior" for="numInferior">Nº soportes</label>
+          <input id="numInferior" type="number" min="0" placeholder="Sugerido">
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button id="btnPrint">🖨 Imprimir (Cliente)</button>
+      <button id="btnPrintTaller" class="secondary">🖨 Imprimir (Taller)</button>
+      <button id="btnPDF" class="pdf">📄 PDF</button>
+      <button id="btnExport" class="export">⬇ PNG</button>
+    </div>
+
+    <button id="btnClear" class="clear">🗑️ Limpiar todo</button>
+  </div>
+
+  <div class="panel plan">
+    <div id="alertOut"></div>
+    <div id="planoOut">
+      <div style="text-align:center;color:#888;padding:50px;font-style:italic;">
+        📐 Introduce las dimensiones y cotas para generar el plano automáticamente
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="notification" class="notification">✓ Operación completada</div>
+
+<script src="vendor/html2canvas.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+
+<script>
+const App = (() => {
+
+  const brazoPlegadoMap = {
+    1500: 722,
+    1750: 847,
+    2000: 972,
+    2250: 1097,
+    2500: 1222,
+    2750: 1347,
+    3000: 1472,
+    3250: 1597,
+    3500: 1722,
+    3750: 1847,
+    4000: 1972
+  };
+
+  const getBrazoPlegadoReal = (salida) => {
+    if (brazoPlegadoMap[salida] !== undefined) {
+      return brazoPlegadoMap[salida] + 100;
+    }
+    const keys = Object.keys(brazoPlegadoMap).map(Number).sort((a,b)=>a-b);
+    if (salida <= keys[0]) return brazoPlegadoMap[keys[0]] + 100;
+    if (salida >= keys[keys.length-1]) return brazoPlegadoMap[keys[keys.length-1]] + 100;
+    
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (salida >= keys[i] && salida <= keys[i+1]) {
+        const t = (salida - keys[i]) / (keys[i+1] - keys[i]);
+        const val = brazoPlegadoMap[keys[i]] + t * (brazoPlegadoMap[keys[i+1]] - brazoPlegadoMap[keys[i]]);
+        return Math.round(val) + 100;
+      }
+    }
+    return Math.round(salida / 2) + 100;
+  };
+
+  // Tablas "Sop_2/3brazos" extraídas de Arms and brackets Modulbox_sbx_Ad.xlsx (Hoja1).
+  // La clave 4 se reutiliza de MODULBOX-400 (aproximación: el Excel Sombrex no trae 4 brazos).
+  // Valor = nº de kits de soporte de pared necesarios (1 kit = 2 soportes; los ".5" son medio kit extra).
+  // 0 = combinación de Salida/Línea por debajo del mínimo (no válida).
+  const SOP_TABLES = {
+    2: {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5],
+      lVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6],
+      grid: [
+        [1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3],
+        [1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3],
+        [1,1,1,1,1,1,2,2,2,2,2,2,2,2,3,3,3,3,3],
+        [0,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,4,4,4],
+        [0,0,2,2,2,2,2,2,2,2,2,2,2,2,3,3,4,4,4],
+        [0,0,2,2,2,2,2,2,2,2,2,2,2,2,3,3,4,4,4],
+        [0,0,0,2,2,2,2,2,2,2,2,2,2,2,3,3,4,4,4],
+        [0,0,0,2,2,2,2,2,2,2,2,2,2,2,3,3,4,4,4],
+        [0,0,0,0,2,2,2,2,2,2,2,2,3,2,3,3,4,4,4]
+      ]
+    },
+    3: {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5],
+      lVals: [3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7],
+      grid: [
+        [1.5,1.5,1.5,1.5,1.5,1.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5],
+        [0,1.5,1.5,1.5,1.5,1.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5],
+        [0,0,0,1.5,1.5,1.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5],
+        [0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3],
+        [0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3],
+        [0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3],
+        [0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3],
+        [0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3],
+        [0,0,0,0,0,0,0,0,0,0,0,0,3,3,4,3]
+      ]
+    },
+    4: {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4],
+      lVals: [4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8,8.25,8.5,8.75,9,9.25,9.5,9.75,10,10.25,10.5,10.75,11,11.25,11.5,11.75,12],
+      grid: [
+        [0,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+        [0,0,0,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+        [0,0,0,0,0,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+        [0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+        [0,0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4],
+        [0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,6,6,6],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,6,6,6,6,6],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,5,5,5,5,5,5,5,5,5,6,6,6,6,6,6,6],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,6,5,5,5,5,6,6,6,6,6,6,6,6,6],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,6,6,6,6,6,6,6,6,6,6,6,6,6],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,6,6,6,6,6,6,6,6,6,6,6],
+      ]
+    },
+  };
+
+  // Devuelve {kits, individual, valid, lUsed, lOverMax} para S(mm)/L(mm)/nº de brazos.
+  const getSoportesPared = (S_mm, L_mm, nbrazos) => {
+    const table = SOP_TABLES[nbrazos];
+    if (!table) return null;
+    const S_m = S_mm / 1000;
+    const L_m = L_mm / 1000;
+    let sIdx = table.sVals.indexOf(Math.round(S_m * 4) / 4);
+    if (sIdx === -1) {
+      sIdx = table.sVals.reduce((best, v, i) =>
+        Math.abs(v - S_m) < Math.abs(table.sVals[best] - S_m) ? i : best, 0);
+    }
+    const lMin = table.lVals[0];
+    const lMax = table.lVals[table.lVals.length - 1];
+    let lOverMax = false;
+    let lUsed = Math.ceil(L_m * 4) / 4;
+    if (lUsed > lMax) { lUsed = lMax; lOverMax = true; }
+    if (lUsed < lMin) return { kits: 0, individual: 0, valid: false, lUsed, lOverMax: false, belowTableMin: true };
+    const lIdx = table.lVals.indexOf(lUsed);
+    const kits = table.grid[sIdx][lIdx];
+    return {
+      kits,
+      individual: Math.round(kits * 2),
+      valid: kits > 0,
+      lUsed,
+      lOverMax,
+      belowTableMin: false
+    };
+  };
+
+  // Línea mínima (mm) para una Salida/nº de brazos: el primer valor de L en la tabla
+  // Sop_Nbrazos (ya verificada) cuyo nº de soportes no es 0 ("no válido").
+  const getLineaMinima = (S_mm, nbrazos) => {
+    const table = SOP_TABLES[nbrazos];
+    if (!table) return null;
+    const S_m = S_mm / 1000;
+    let sIdx = table.sVals.indexOf(Math.round(S_m * 4) / 4);
+    if (sIdx === -1) {
+      sIdx = table.sVals.reduce((best, v, i) =>
+        Math.abs(v - S_m) < Math.abs(table.sVals[best] - S_m) ? i : best, 0);
+    }
+    const row = table.grid[sIdx];
+    for (let i = 0; i < row.length; i++) {
+      if (row[i] > 0) return table.lVals[i] * 1000;
+    }
+    return null;
+  };
+
+  // Línea máx. por nº de brazos. Sombrex: las tablas 2 brazos llegan a 6 m y las de 3 brazos
+  // a 7 m; para 4 brazos se reutiliza el límite de MODULBOX-400 (aproximación).
+  const LINEA_MAX_POR_BRAZOS = { 2: 6000, 3: 7000, 4: 12000 };
+
+  // Tabla "L3_2/3brazos" del Excel Sombrex (para 4 brazos, tabla de MODULBOX-400):
+  // margen (mm) desde el extremo del tubo hasta el primer/último soporte de pared.
+  const L3_TABLES = {
+    "2": {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5],
+      lVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6],
+      grid: [
+        [100,100,150,150,200,200,250,250,300,300,350,350,400,400,450,450,500,500,550],
+        [80,100,150,150,80,200,250,250,300,300,350,530,400,400,450,450,500,500,550],
+        [80,100,150,150,200,80,250,250,300,300,350,350,400,400,450,450,500,500,550],
+        [0,140,150,150,200,200,140,250,300,300,350,350,400,400,450,450,500,500,550],
+        [0,0,140,150,200,200,250,140,300,300,350,350,400,400,450,450,500,500,550],
+        [0,0,140,150,200,200,250,250,140,300,350,350,400,400,450,450,500,500,550],
+        [0,0,140,140,200,200,250,250,300,140,140,350,400,400,450,450,500,500,550],
+        [0,0,0,140,140,200,250,250,300,300,140,140,400,400,450,450,500,0,0],
+        [0,0,0,0,140,200,250,250,300,300,350,140,140,400,450,450,500,0,0]
+      ]
+    },
+    "3": {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5],
+      lVals: [3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7],
+      grid: [
+        [100,100,150,150,200,200,250,250,300,300,350,350,400,400,450,450],
+        [0,100,150,150,200,200,250,250,300,300,350,350,400,400,450,450],
+        [0,0,0,150,200,200,250,250,300,300,350,350,400,400,450,450],
+        [0,0,0,0,140,200,250,250,300,300,350,350,400,400,450,450],
+        [0,0,0,0,0,0,140,250,300,300,350,350,400,400,450,450],
+        [0,0,0,0,0,0,0,0,140,300,350,350,400,400,450,450],
+        [0,0,0,0,0,0,0,0,0,140,140,350,400,400,450,450],
+        [0,0,0,0,0,0,0,0,0,0,0,140,140,400,450,450],
+        [0,0,0,0,0,0,0,0,0,0,0,0,140,140,140,450]
+      ]
+    },
+    "4": {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4],
+      lVals: [4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8,8.25,8.5,8.75,9,9.25,9.5,9.75,10,10.25,10.5,10.75,11,11.25,11.5,11.75,12],
+      grid: [
+        [80,100,150,150,200,200,250,250,300,300,350,350,400,400,450,450,500,500,550,550,600,600,650,650,650,650,650,650,650,650,650,650],
+        [0,0,80,80,200,200,250,250,300,300,350,350,400,400,450,450,500,500,550,550,600,600,650,650,650,650,650,650,650,650,650,650],
+        [0,0,0,0,80,80,250,250,300,300,350,350,400,400,450,450,500,500,550,550,600,600,650,650,650,650,650,650,650,650,650,650],
+        [0,0,0,0,0,0,80,250,300,300,350,350,400,400,450,450,500,500,550,550,600,600,650,650,650,650,650,650,650,650,650,650],
+        [0,0,0,0,0,0,0,0,80,80,350,350,400,400,450,450,500,500,550,550,600,600,650,650,650,650,650,650,650,650,650,650],
+        [0,0,0,0,0,0,0,0,0,0,140,140,400,400,450,450,500,500,550,550,600,600,650,650,650,650,650,650,650,650,650,650],
+        [0,0,0,0,0,0,0,0,0,0,0,0,140,140,140,450,500,500,550,550,600,600,650,650,650,650,650,650,650,650,650,650],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,140,140,140,500,550,550,600,600,650,650,650,650,650,650,650,650,650,650],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,140,140,140,140,600,600,650,650,650,650,650,650,650,650,650,650],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,140,140,140,140,650,650,650,650,650,650,650,650,650,650],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,140,140,140,140,650,650,650,650,650,650,650,650],
+      ]
+    },
+  };
+
+  // Margen L3 (mm) desde el extremo del tubo hasta el primer/último soporte de pared.
+  // Tabla pequeña de respaldo (Hoja1!C9:F19): para líneas cortas (justo por encima del
+  // mínimo) donde la tabla grande de L3/L1 aún no tiene dato, el Excel usa este valor plano.
+  // Columnas: S(m) -> [L1(min), L1(min) Brazos Cruzados, L3(min)]
+  const MIN_TABLE = {
+    1.5:  { L1min: 1860, L1minBC: 1250, L3min: 79.5 },
+    1.75: { L1min: 2110, L1minBC: 1375, L3min: 79.5 },
+    2:    { L1min: 2360, L1minBC: 1500, L3min: 79.5 },
+    2.25: { L1min: 2610, L1minBC: 1625, L3min: 79.5 },
+    2.5:  { L1min: 2860, L1minBC: 1750, L3min: 79.5 },
+    2.75: { L1min: 3110, L1minBC: 1875, L3min: 139.5 },
+    3:    { L1min: 3360, L1minBC: 2000, L3min: 139.5 },
+    3.25: { L1min: 3610, L1minBC: 2125, L3min: 139.5 },
+    3.5:  { L1min: 3860, L1minBC: 2250, L3min: 139.5 },
+    3.75: { L1min: 4110, L1minBC: 2375, L3min: 139.5 },
+    4:    { L1min: 4360, L1minBC: 2500, L3min: 139.5 },
+  };
+
+  const nearestS = (S_m) => {
+    const keys = Object.keys(MIN_TABLE).map(Number);
+    return keys.reduce((best, v) => Math.abs(v - S_m) < Math.abs(best - S_m) ? v : best, keys[0]);
+  };
+
+  const getL3 = (S_mm, L_mm, nbrazos, bc) => {
+    // Sombrex: la tabla de 2 brazos ya incluye el rango de Brazos Cruzados (no hay variante _bc).
+    const table = L3_TABLES[String(nbrazos)];
+    if (!table) return null;
+    const S_m = S_mm / 1000;
+    const L_m = L_mm / 1000;
+    let sIdx = table.sVals.indexOf(Math.round(S_m * 4) / 4);
+    if (sIdx === -1) {
+      sIdx = table.sVals.reduce((best, v, i) =>
+        Math.abs(v - S_m) < Math.abs(table.sVals[best] - S_m) ? i : best, 0);
+    }
+    let lUsed = Math.ceil(L_m * 4) / 4;
+    const lMax = table.lVals[table.lVals.length - 1];
+    const lMin = table.lVals[0];
+    if (lUsed > lMax) lUsed = lMax;
+    if (lUsed < lMin) return MIN_TABLE[nearestS(S_m)].L3min;
+    const lIdx = table.lVals.indexOf(lUsed);
+    const val = table.grid[sIdx][lIdx];
+    return val > 0 ? val : MIN_TABLE[nearestS(S_m)].L3min;
+  };
+
+  // Reparte "total" soportes de forma simétrica entre L3 y (L - L3), según manual MODULBOX-400 1.4.
+  const SOPORTE_OFFSET = 120;   // mm, cada soporte de pared respecto al soporte brazo (Tipo A: 1 lado, Tipo B: los 2)
+  const SOPORTE_EXTREMO_MAX = 350; // mm, si el soporte más cercano al extremo del tubo supera esto, se añade uno extra
+  const SOPORTE_GAP_MAX = 2000;    // mm, ningún hueco entre soportes de pared puede superar esto (líneas largas)
+
+  // Reparte huecos > maxGap añadiendo soportes intermedios equidistantes dentro de ese hueco.
+  const rellenarHuecosGrandes = (posicionesOrdenadas, maxGap) => {
+    const result = [posicionesOrdenadas[0]];
+    for (let i = 1; i < posicionesOrdenadas.length; i++) {
+      const prev = result[result.length - 1];
+      const curr = posicionesOrdenadas[i];
+      const gap = curr - prev;
+      if (gap > maxGap) {
+        const segments = Math.ceil(gap / maxGap);
+        const step = gap / segments;
+        for (let s = 1; s < segments; s++) result.push(Math.round(prev + s * step));
+      }
+      result.push(curr);
+    }
+    return result;
+  };
+
+  // Calcula las posiciones de los soportes de pared a partir de las posiciones ya fijadas
+  // de los soportes brazo (Tipo A: 1 soporte al interior; Tipo B: 2, uno a cada lado),
+  // más la regla de 350mm en los extremos, la placa de unión de cofre (L>7000) y la
+  // regla de separación máxima de 2000mm entre soportes.
+  const sugerirPosicionesSoportes = (S_mm, L_mm, tipo, brazosOrdenados) => {
+    if (!brazosOrdenados || !brazosOrdenados.length) return { error: 'sin_brazos' };
+    let positions = [];
+
+    brazosOrdenados.forEach(b => {
+      if (tipo === 'B') {
+        positions.push(b.cota - SOPORTE_OFFSET, b.cota + SOPORTE_OFFSET);
+      } else {
+        const haciaCentro = b.cota <= L_mm / 2 ? SOPORTE_OFFSET : -SOPORTE_OFFSET;
+        positions.push(b.cota + haciaCentro);
+      }
+    });
+
+    const partido = L_mm > 7000;
+    if (partido) {
+      const mid = L_mm / 2;
+      if (tipo === 'B') positions.push(mid - SOPORTE_OFFSET, mid + SOPORTE_OFFSET);
+      else positions.push(mid + SOPORTE_OFFSET);
+    }
+
+    positions = [...new Set(positions.map(Math.round))].sort((a, b) => a - b);
+    if (!positions.length) return { error: 'sin_datos' };
+
+    if (positions[0] > SOPORTE_EXTREMO_MAX) {
+      positions.unshift(Math.round(positions[0] / 2));
+    }
+    const last = positions.length - 1;
+    if ((L_mm - positions[last]) > SOPORTE_EXTREMO_MAX) {
+      positions.push(Math.round(L_mm - (L_mm - positions[last]) / 2));
+    }
+    positions = [...new Set(positions)].sort((a, b) => a - b);
+
+    positions = rellenarHuecosGrandes(positions, SOPORTE_GAP_MAX);
+
+    return { positions, total: positions.length, partido };
+  };
+
+  // Tabla "L1_2/3/4brazos" (+ _bc): distancia (mm) entre soportes brazo consecutivos ENFRENTADOS.
+  const L1_TABLES = {
+    "2": {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5],
+      lVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6],
+      grid: [
+        [1262,1512,1662,1912,2062,2312,2462,2712,2862,3112,3262,3512,3662,3912,4062,4312,4462,4712,4862],
+        [1375,1512,1662,1912,2302,2312,2462,2712,2862,3112,3262,3512,3662,3912,4062,4312,4462,4712,4862],
+        [1500,1512,1662,1912,2062,2552,2462,2712,2862,3112,3262,3512,3662,3912,4062,4312,4462,4712,4862],
+        [0,1625,1662,1912,2062,2312,2682,2712,2862,3112,3262,3512,3662,3912,4062,4312,4462,4712,4862],
+        [0,0,1750,1912,2062,2312,2462,2932,2862,3112,3262,3512,3662,3912,4062,4312,4462,4712,4862],
+        [0,0,1875,1912,2062,2312,2462,2712,3183,3112,3262,3512,3662,3912,4062,4312,4462,4712,4862],
+        [0,0,0,2000,2062,2312,2462,2712,2862,3433,3683,3512,3662,3912,4062,4312,4462,4712,4862],
+        [0,0,0,2125,2183,2312,2462,2712,2862,3112,3683,3933,3662,3912,4062,4312,4462,0,0],
+        [0,0,0,0,2250,2312,2462,2712,2862,3112,3262,3933,4183,3912,4062,4312,4462,0,0]
+      ]
+    },
+    "3": {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5],
+      lVals: [3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7],
+      grid: [
+        [1921.8,2021.8,2081.8,2181.8,2241.8,2341.8,2401.8,2501.8,2561.8,2661.8,2721.8,2821.8,2881.8,2981.8,3041.8,3141.8],
+        [0,2121.8,2181.8,2281.8,2341.8,2441.8,2501.8,2601.8,2661.8,2761.8,2821.8,2921.8,2981.8,3081.8,3141.8,3241.8],
+        [0,0,0,2381.8,2441.8,2541.8,2601.8,2701.8,2761.8,2861.8,2921.8,3021.8,3081.8,3181.8,3241.8,3341.8],
+        [0,0,0,0,2637.8,2641.8,2701.8,2801.8,2861.8,2961.8,3021.8,3121.8,3181.8,3281.8,3341.8,3441.8],
+        [0,0,0,0,0,0,2937.8,2901.8,2961.8,3061.8,3121.8,3221.8,3281.8,3381.8,3441.8,3541.8],
+        [0,0,0,0,0,0,0,0,3189.8,3161.8,3221.8,3321.8,3381.8,3481.8,3541.8,3641.8],
+        [0,0,0,0,0,0,0,0,0,3389.8,3489.8,3421.8,3481.8,3581.8,3641.8,3741.8],
+        [0,0,0,0,0,0,0,0,0,0,0,3689.8,3789.8,3681.8,3741.8,3841.8],
+        [0,0,0,0,0,0,0,0,0,0,0,0,3889.8,3989.8,4089.8,3941.8]
+      ]
+    },
+    "4": {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4],
+      lVals: [4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8,8.25,8.5,8.75,9,9.25,9.5,9.75,10,10.25,10.5,10.75,11,11.25,11.5,11.75,12],
+      grid: [
+        [1899.25,1961.75,1999.25,2061.75,2099.25,2161.75,2199.25,2261.75,2299.25,2361.75,2399.25,2461.75,2499.25,2561.75,2599.25,2661.75,2699.25,2761.75,2799.25,2861.75,2899.25,2961.75,2999.25,3061.75,3124.25,3186.75,3249.25,3311.75,3374.25,3436.75,3499.25,3561.75],
+        [0,0,2124.25,2186.75,2224.25,2286.75,2324.25,2386.75,2424.25,2486.75,2524.25,2586.75,2624.25,2686.75,2724.25,2786.75,2824.25,2886.75,2924.25,2986.75,3024.25,3086.75,3124.25,3186.75,3249.25,3311.75,3374.25,3436.75,3499.25,3561.75,3624.25,3686.75],
+        [0,0,0,0,2409.25,2411.75,2449.25,2511.75,2549.25,2611.75,2649.25,2711.75,2749.25,2811.75,2849.25,2911.75,2949.25,3011.75,3049.25,3111.75,3149.25,3211.75,3249.25,3311.75,3374.25,3436.75,3499.25,3561.75,3624.25,3686.75,3749.25,3811.75],
+        [0,0,0,0,0,0,2659.25,2636.75,2674.25,2736.75,2774.25,2836.75,2874.25,2936.75,2974.25,3036.75,3074.25,3136.75,3174.25,3236.75,3274.25,3336.75,3374.25,3436.75,3499.25,3561.75,3624.25,3686.75,3749.25,3811.75,3874.25,3936.75],
+        [0,0,0,0,0,0,0,0,2909.25,2861.75,2899.25,2961.75,2999.25,3061.75,3099.25,3161.75,3199.25,3261.75,3299.25,3361.75,3399.25,3461.75,3499.25,3561.75,3624.25,3686.75,3749.25,3811.75,3874.25,3936.75,3999.25,4061.75],
+        [0,0,0,0,0,0,0,0,0,0,3129.25,3191.75,3124.25,3186.75,3224.25,3286.75,3324.25,3386.75,3424.25,3486.75,3524.25,3586.75,3624.25,3686.75,3749.25,3811.75,3874.25,3936.75,3999.25,4061.75,4124.25,4186.75],
+        [0,0,0,0,0,0,0,0,0,0,0,0,3379.25,3441.75,3504.25,3411.75,3449.25,3511.75,3549.25,3611.75,3649.25,3711.75,3749.25,3811.75,3874.25,3936.75,3999.25,4061.75,4124.25,4186.75,4249.25,4311.75],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,3629.25,3691.75,3754.25,3636.75,3674.25,3736.75,3774.25,3836.75,3874.25,3936.75,3999.25,4061.75,4124.25,4186.75,4249.25,4311.75,4374.25,4436.75],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3879.25,3941.75,4004.25,3861.75,3899.25,3961.75,3999.25,4061.75,4124.25,4186.75,4249.25,4311.75,4374.25,4436.75,4499.25,4561.75],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4129.25,4191.75,4254.25,4316.75,4124.25,4186.75,4249.25,4311.75,4374.25,4436.75,4499.25,4561.75,4624.25,4686.75],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4379.25,4441.75,4504.25,4566.75,4374.25,4436.75,4499.25,4561.75,4624.25,4686.75,4749.25,4811.75],
+      ]
+    },
+  };
+
+  // Tabla "L2_3/4brazos": distancia (mm) entre soportes brazo consecutivos EN LÍNEA.
+  const L2_TABLES = {
+    "3": {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5],
+      lVals: [3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7],
+      grid: [
+        [1090.2,1240.2,1330.2,1480.2,1570.2,1720.2,1810.2,1960.2,2050.2,2200.2,2290.2,2440.2,2530.2,2680.2,2770.2,2920.2],
+        [0,1140.2,1230.2,1380.2,1470.2,1620.2,1710.2,1860.2,1950.2,2100.2,2190.2,2340.2,2430.2,2580.2,2670.2,2820.2],
+        [0,0,0,1280.2,1370.2,1520.2,1610.2,1760.2,1850.2,2000.2,2090.2,2240.2,2330.2,2480.2,2570.2,2720.2],
+        [0,0,0,0,1414.2,1420.2,1510.2,1660.2,1750.2,1900.2,1990.2,2140.2,2230.2,2380.2,2470.2,2620.2],
+        [0,0,0,0,0,0,1614.2,1560.2,1650.2,1800.2,1890.2,2040.2,2130.2,2280.2,2370.2,2520.2],
+        [0,0,0,0,0,0,0,0,1742.2,1700.2,1790.2,1940.2,2030.2,2180.2,2270.2,2420.2],
+        [0,0,0,0,0,0,0,0,0,1792.2,1942.2,1840.2,1930.2,2080.2,2170.2,2320.2],
+        [0,0,0,0,0,0,0,0,0,0,0,1992.2,2142.2,1980.2,2070.2,2220.2],
+        [0,0,0,0,0,0,0,0,0,0,0,0,2042.2,2192.2,2342.2,2120.2]
+      ]
+    },
+    "4": {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4],
+      lVals: [4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8,8.25,8.5,8.75,9,9.25,9.5,9.75,10,10.25,10.5,10.75,11,11.25,11.5,11.75,12],
+      grid: [
+        [1056.375,1150.125,1206.375,1300.125,1356.375,1450.125,1506.375,1600.125,1656.375,1750.125,1806.375,1900.125,1956.375,2050.125,2106.375,2200.125,2256.375,2350.125,2406.375,2500.125,2556.375,2612.625,2706.375,2800.125,2893.875,2987.625,3081.375,3175.125,3268.875,3362.625,3456.375,3550.125],
+        [0,0,1143.875,1237.625,1293.875,1387.625,1443.875,1537.625,1593.875,1687.625,1743.875,1837.625,1893.875,1987.625,2043.875,2137.625,2193.875,2287.625,2343.875,2437.625,2493.875,2550.125,2643.875,2737.625,2831.375,2925.125,3018.875,3112.625,3206.375,3300.125,3393.875,3487.625],
+        [0,0,0,0,1321.375,1325.125,1381.375,1475.125,1531.375,1625.125,1681.375,1775.125,1831.375,1925.125,1981.375,2075.125,2131.375,2225.125,2281.375,2375.125,2431.375,2487.625,2581.375,2675.125,2768.875,2862.625,2956.375,3050.125,3143.875,3237.625,3331.375,3425.125],
+        [0,0,0,0,0,0,1446.375,1412.625,1468.875,1562.625,1618.875,1712.625,1768.875,1862.625,1918.875,2012.625,2068.875,2162.625,2218.875,2312.625,2368.875,2425.125,2518.875,2612.625,2706.375,2800.125,2893.875,2987.625,3081.375,3175.125,3268.875,3362.625],
+        [0,0,0,0,0,0,0,0,1571.375,1500.125,1556.375,1650.125,1706.375,1800.125,1856.375,1950.125,2006.375,2100.125,2156.375,2250.125,2306.375,2362.625,2456.375,2550.125,2643.875,2737.625,2831.375,2925.125,3018.875,3112.625,3206.375,3300.125],
+        [0,0,0,0,0,0,0,0,0,0,1651.375,1745.125,1643.875,1737.625,1793.875,1887.625,1943.875,2037.625,2093.875,2187.625,2243.875,2300.125,2393.875,2487.625,2581.375,2675.125,2768.875,2862.625,2956.375,3050.125,3143.875,3237.625],
+        [0,0,0,0,0,0,0,0,0,0,0,0,1776.375,1870.125,1963.875,1825.125,1881.375,1975.125,2031.375,2125.125,2181.375,2237.625,2331.375,2425.125,2518.875,2612.625,2706.375,2800.125,2893.875,2987.625,3081.375,3175.125],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1901.375,1995.125,2088.875,1912.625,1968.875,2062.625,2118.875,2175.125,2268.875,2362.625,2456.375,2550.125,2643.875,2737.625,2831.375,2925.125,3018.875,3112.625],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2026.375,2120.125,2213.875,2000.125,2056.375,2112.625,2206.375,2300.125,2393.875,2487.625,2581.375,2675.125,2768.875,2862.625,2956.375,3050.125],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2151.375,2245.125,2338.875,2432.625,2143.875,2237.625,2331.375,2425.125,2518.875,2612.625,2706.375,2800.125,2893.875,2987.625],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2276.375,2370.125,2463.875,2557.625,2268.875,2362.625,2456.375,2550.125,2643.875,2737.625,2831.375,2925.125],
+      ]
+    },
+  };
+  // Tablas T3 (brazos laterales) y T2 (brazo central) del Excel Sombrex:
+  // distancia (mm) del terminal del brazo desde el extremo de la barra frontal.
+  const T3_TABLES = {
+    "2": {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5],
+      lVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6],
+      grid: [
+        [266,266,316,316,366,366,416,416,466,466,516,516,566,566,616,616,666,666,716],
+        [0,266,316,316,246,366,416,416,466,466,516,516,566,566,616,616,666,666,716],
+        [0,266,316,316,366,246,416,416,466,466,516,516,566,566,616,616,666,666,716],
+        [0,0,316,316,366,366,306,416,466,466,516,516,566,566,616,616,666,666,716],
+        [0,0,0,316,366,366,416,306,466,466,516,516,566,566,616,616,666,666,716],
+        [0,0,0,316,366,366,416,416,306,466,516,516,566,566,616,616,666,666,716],
+        [0,0,0,0,366,366,416,416,466,306,306,516,566,566,616,616,666,666,716],
+        [0,0,0,0,306,366,416,416,466,466,306,306,566,566,616,616,666,0,0],
+        [0,0,0,0,0,366,416,416,466,466,516,306,306,566,616,616,666,0,0]
+      ]
+    },
+    "3": {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5],
+      lVals: [3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7],
+      grid: [
+        [266,266,316,316,366,366,416,416,466,466,516,516,566,566,616,616],
+        [0,266,316,316,366,366,416,416,466,466,516,516,566,566,616,616],
+        [0,0,0,316,366,366,416,416,466,466,516,516,566,566,616,616],
+        [0,0,0,0,246,366,416,416,466,466,516,516,566,566,616,616],
+        [0,0,0,0,0,0,246,416,466,466,516,516,566,566,616,616],
+        [0,0,0,0,0,0,0,0,306,466,516,516,566,566,616,616],
+        [0,0,0,0,0,0,0,0,0,306,306,516,566,566,616,616],
+        [0,0,0,0,0,0,0,0,0,0,0,306,306,566,616,616],
+        [0,0,0,0,0,0,0,0,0,0,0,0,306,306,306,616]
+      ]
+    },
+  };
+  const T2_TABLES = {
+    "3": {
+      sVals: [1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5],
+      lVals: [3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7],
+      grid: [
+        [1356,1506,1646,1796,1936,2086,2226,2376,2516,2666,2806,2956,3096,3246,3386,3536],
+        [0,1406,1546,1696,1836,1986,2126,2276,2416,2566,2706,2856,2996,3146,3286,3436],
+        [0,0,0,1596,1736,1886,2026,2176,2316,2466,2606,2756,2896,3046,3186,3336],
+        [0,0,0,0,1660,1786,1926,2076,2216,2366,2506,2656,2796,2946,3086,3236],
+        [0,0,0,0,0,0,1860,1976,2116,2266,2406,2556,2696,2846,2986,3136],
+        [0,0,0,0,0,0,0,0,2048,2166,2306,2456,2596,2746,2886,3036],
+        [0,0,0,0,0,0,0,0,0,2098,2248,2356,2496,2646,2786,2936],
+        [0,0,0,0,0,0,0,0,0,0,0,2298,2448,2546,2686,2836],
+        [0,0,0,0,0,0,0,0,0,0,0,0,2348,2498,2648,2736]
+      ]
+    },
+  };
+
+  const lookupTable = (tables, key, S_mm, L_mm) => {
+    const table = tables[key];
+    if (!table) return null;
+    const S_m = S_mm / 1000;
+    const L_m = L_mm / 1000;
+    let sIdx = table.sVals.indexOf(Math.round(S_m * 4) / 4);
+    if (sIdx === -1) {
+      sIdx = table.sVals.reduce((best, v, i) =>
+        Math.abs(v - S_m) < Math.abs(table.sVals[best] - S_m) ? i : best, 0);
+    }
+    let lUsed = Math.ceil(L_m * 4) / 4;
+    const lMax = table.lVals[table.lVals.length - 1];
+    const lMin = table.lVals[0];
+    if (lUsed > lMax) lUsed = lMax;
+    if (lUsed < lMin) return null;
+    const lIdx = table.lVals.indexOf(lUsed);
+    const val = table.grid[sIdx][lIdx];
+    return val > 0 ? val : null;
+  };
+
+  const getL1 = (S_mm, L_mm, nbrazos, bc) => {
+    const val = lookupTable(L1_TABLES, String(nbrazos), S_mm, L_mm);
+    if (val != null) return val;
+    const entry = MIN_TABLE[nearestS(S_mm / 1000)];
+    return bc === 'SI' ? entry.L1minBC : entry.L1min;
+  };
+  const getL2 = (S_mm, L_mm, nbrazos) =>
+    lookupTable(L2_TABLES, String(nbrazos), S_mm, L_mm);
+
+  // Calcula la posición (cota, mm) de cada soporte brazo según L3 (margen) + L1 (huecos
+  // entre brazos enfrentados, izq→der) o L2 (resto de huecos, "en línea").
+  const calcularPosicionesBrazos = (S_mm, L_mm, nbrazos, bc, ladoArray) => {
+    if (ladoArray.length !== nbrazos || ladoArray.some(l => !l)) return { error: 'faltan_lados' };
+    const l3 = getL3(S_mm, L_mm, nbrazos, bc);
+    if (l3 == null) return { error: 'sin_datos' };
+    const gaps = [];
+    for (let i = 1; i < nbrazos; i++) {
+      const facing = ladoArray[i - 1] === 'izq' && ladoArray[i] === 'der';
+      const gap = nbrazos === 2
+        ? getL1(S_mm, L_mm, 2, bc)
+        : (facing ? getL1(S_mm, L_mm, nbrazos, 'NO') : getL2(S_mm, L_mm, nbrazos));
+      if (gap == null) return { error: 'sin_datos' };
+      gaps.push(gap);
+    }
+    // Las tablas de L1/L2/L3 se consultan por separado y no siempre suman exacto a la
+    // línea total (pequeño redondeo entre tablas). Para que la disposición sea simétrica
+    // (brazo N debe quedar a la misma distancia del extremo que su espejo), repartimos
+    // esa diferencia a partes iguales entre todos los huecos.
+    if (gaps.length) {
+      const target = L_mm - 2 * l3;
+      const sum = gaps.reduce((a, b) => a + b, 0);
+      const ajuste = (target - sum) / gaps.length;
+      for (let i = 0; i < gaps.length; i++) gaps[i] += ajuste;
+    }
+    const positions = [l3];
+    for (let i = 0; i < gaps.length; i++) positions.push(positions[i] + gaps[i]);
+    // Las tablas LLAZA solo cubren la disposición típica (huecos "en línea" convergiendo
+    // hacia un único hueco "enfrentado"). Si la combinación de lados elegida no encaja
+    // (más de un hueco enfrentado, etc.), la suma puede salirse de la línea: lo detectamos aquí.
+    if (positions[positions.length - 1] > L_mm || positions.some(p => p < 0)) {
+      return { error: 'fuera_de_rango' };
+    }
+    return { positions: positions.map(Math.round), l3 };
+  };
+
+  // Ajuste de T2 (brazo central) según el modelo, tal como hace el Excel Sombrex (Hoja2!G12):
+  //   OPEN → +difterminales − difBCround/2 ; SemiOPEN → +difterminales ; SemiBOX/FullBOX → 0.
+  const SBX_DIF_TERMINALES = 35;
+  const SBX_DIF_BC_ROUND   = 31;
+  const ajusteT2Modelo = (modelo) => {
+    if (modelo === 'OPEN')     return SBX_DIF_TERMINALES - SBX_DIF_BC_ROUND / 2;
+    if (modelo === 'SemiOPEN') return SBX_DIF_TERMINALES;
+    return 0;
+  };
+
+  // Distancia (mm) del terminal del brazo desde el extremo de la barra frontal.
+  // Sombrex: por tablas — T3 para los brazos laterales y T2 para el brazo central (3+ brazos),
+  // con el ajuste de modelo sobre T2. Si no hay dato en tabla (líneas cortas o 4 brazos) se
+  // cae al cálculo por offset de MODULBOX-400 (188mm fijo / 174mm regulable).
+  const calcularTerminalBrazo = (posicion, lado, L_mm, tieneTejadillo, ctx) => {
+    const c = ctx || {};
+    if (c.S_mm && c.nbrazos) {
+      if (c.esCentral && c.nbrazos >= 3) {
+        const t2 = lookupTable(T2_TABLES, String(c.nbrazos), c.S_mm, L_mm);
+        if (t2 != null) return Math.round(t2 + ajusteT2Modelo(c.modelo));
+      } else {
+        const t3 = lookupTable(T3_TABLES, String(c.nbrazos), c.S_mm, L_mm);
+        if (t3 != null) return Math.round(t3);
+      }
+    }
+    const offset = tieneTejadillo ? 174 : 188;
+    return lado === 'izq' ? Math.round(posicion + offset) : Math.round(L_mm - posicion + offset);
+  };
+
+  // Manual MODULBOX-400, 1.5: nº de soportes tejadillo/lira y nº de soportes perfil
+  // inferior, según Línea (m). Independiente de Salida y nº de brazos.
+  const PERFIL_L = [2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12];
+  const LIRA_COUNT     = [1,1,1,1,2,2,2,2,2,3,3,4,4,5,5,5,5,6,6,6,6];
+  const INFERIOR_COUNT = [1,1,1,2,2,2,3,3,3,4,4,5,6,6,6,7,7,7,8,8,8];
+
+  const lookupPerfil = (counts, L_mm) => {
+    const L_m = L_mm / 1000;
+    if (L_m < PERFIL_L[0]) return 0;
+    let lUsed = Math.ceil(L_m * 2) / 2;
+    if (lUsed > PERFIL_L[PERFIL_L.length - 1]) lUsed = PERFIL_L[PERFIL_L.length - 1];
+    const idx = PERFIL_L.indexOf(lUsed);
+    return counts[idx];
+  };
+
+  const sugerirNumLira = (L_mm, maquina, lira) => {
+    let n = lookupPerfil(LIRA_COUNT, L_mm);
+    if (maquina === 'SI' && lira === 'SI') n += 1;
+    return n;
+  };
+  const sugerirNumInferior = (L_mm) => lookupPerfil(INFERIOR_COUNT, L_mm);
+
+  // Reparte "n" soportes a partes iguales a lo largo de la línea (n+1 tramos iguales).
+  const posicionesEquidistantes = (L_mm, n) => {
+    if (n <= 0) return [];
+    const segment = L_mm / (n + 1);
+    const positions = [];
+    for (let k = 1; k <= n; k++) positions.push(Math.round(k * segment));
+    return positions;
+  };
+
+  const i18n = {
+    es: {
+      titleMain: "Configurador MODULBOX Sombrex",
+      subtitleMain: "Brazos a Escala Real Onyx (+100mm) con simulación visual de cruce e impacto",
+      offlineMsg: "Sin conexión — la app sigue funcionando con los datos guardados en el dispositivo.",
+      installMsg: "Instala esta app en tu móvil para usarla sin conexión.",
+      installBtn: "Instalar",
+      lblPedido: "📋 Nº Pedido",
+      lblCliente: "👤 Cliente",
+      phPedido: "Ej. 12345",
+      phCliente: "Nombre del cliente",
+      secDim: "📏 Dimensiones y Motorización",
+      lblModelo: "🏗️ Modelo",
+      lblMaquina: "⚙️ Máquina (Gearbox)",
+      lblLinea: "Línea L (mm)",
+      lblSalida: "Salida S (mm)",
+      phLinea: "Ej. 6000",
+      lblLadoMotor: "⚡ Lado del Motor",
+      lblHolgura: "🔧 Holgura seg. (mm)",
+      lblGrosorTapa: "🧵 Grosor de tapa (mm)",
+      phGrosorTapa: "Ej. 19",
+      thCotaTaller: "Cota barra cuadrada (mm)",
+      colTerminalTaller: "Terminal barra de carga (mm)",
+      optSi: "Sí",
+      optNo: "No",
+      optMotorIzq: "Izquierda (I)",
+      optMotorDer: "Derecha (D)",
+      optElegir: "— Elegir —",
+      optBrazos2: "2 brazos",
+      optBrazos3: "3 brazos",
+      optBrazos4: "4 brazos",
+      secSoportes: "🔧 Colocación de soportes",
+      lblCasPared: "📍 Soportes de PARED (mm, sep. por comas o saltos)",
+      phCasPared: "Ejemplo: 250, 3000, 5750",
+      lblNumBrazos: "💪 Número de brazos (2–4)",
+      lblBC: "✖️ Brazos Cruzados",
+      lblBCnota: "(solo 2 brazos)",
+      secPerfiles: "🏠 Perfiles tejadillo/lira e inferior",
+      lblPerfilTejadillo: "🏠 Tejadillo",
+      lblNumTejadillo: "Nº soportes",
+      lblPerfilLiraPosterior: "🏠 Perfil Lira Posterior",
+      lblNumLiraPosterior: "Nº soportes",
+      lblPerfilLiraCofre: "🏠 Perfil Lira/Cofre",
+      lblNumLiraCofre: "Nº soportes",
+      lblPerfilInferior: "🏠 Perfil Inferior",
+      lblPerfilInferiorNota: "(solo FullBOX)",
+      lblNumInferior: "Nº soportes",
+      badgeLira: "Soporte Tejadillo",
+      badgeLiraPosterior: "Soporte Lira Posterior",
+      badgeLiraCofre: "Soporte Lira/Cofre",
+      badgeInferior: "Soporte Perfil Inferior",
+      tablaTerminales: "Cálculo de terminales de brazo",
+      terminalFijo: "Terminal fijo (sin Tejadillo)",
+      terminalRegulable: "Terminal regulable (con Tejadillo)",
+      colBrazo: "Brazo",
+      colSoporte: "Cota soporte (mm)",
+      colSoporteTaller: "Cota soporte barra cuadrada (mm)",
+      colTerminal: "Cota terminal (mm)",
+      brazoLabel: "Brazo",
+      brazoSelect: "— Lado —",
+      brazoIzq: "Izq (Roja) → pliega dcha",
+      brazoDer: "Der (Verde) → pliega izq",
+      brazoCota: "Cota en mm",
+      btnSugerir: "🧮 Sugerir soportes",
+      notifSugerir: "🧮 Soportes sugeridos",
+      errSugerirInvalido: "No se pueden sugerir soportes: la línea es demasiado corta para esta combinación.",
+      errSugerirSinDatos: "No hay datos de posición para esta combinación de Salida/Línea.",
+      confirmSugerir: "Esto sustituirá el contenido actual de \"Soportes de PARED\" por la sugerencia automática. ¿Continuar?",
+      errSugerirSinBrazos: "Introduce (o calcula con \"Calcular posición brazos\") la cota y el lado de todos los brazos antes de sugerir los soportes de pared.",
+      btnCalcularBrazos: "📐 Calcular posición brazos",
+      notifCalcularBrazos: "📐 Posición de brazos calculada",
+      errCalcularFaltaLado: "Selecciona el lado (izq/der) de todos los brazos antes de calcular su posición.",
+      errCalcularInvalido: "No se puede calcular: revisa Línea, Salida y nº de brazos (combinación fuera de tabla o por debajo del mínimo).",
+      errCalcularFueraRango: "La combinación de lados elegida no encaja en la línea (las tablas LLAZA solo cubren un único hueco \"enfrentado\"). Prueba con los brazos exteriores plegando hacia el centro y solo un par central enfrentado.",
+      confirmCalcularBrazos: "Esto sustituirá las cotas de los brazos ya escritas por el cálculo automático. ¿Continuar?",
+      btnPrint: "🖨 Imprimir (Cliente)",
+      btnPrintTaller: "🖨 Imprimir (Taller)",
+      btnPDF: "📄 PDF",
+      btnExport: "⬇ PNG",
+      btnClear: "🗑️ Limpiar todo",
+      errPdfPng: "No se pudieron cargar los módulos de exportación (requiere conexión a internet).",
+      errExport: "Error al generar el archivo.",
+      msgPlaceholder: "📐 Introduce las dimensiones y cotas para generar el plano automáticamente",
+      errLinea: "Introduce una línea válida (mayor que 0 mm).",
+      errSalida: "La salida no puede ser negativa.",
+      warSalida: "La salida es mayor que la línea.",
+      errOverlap: "❌ INTERFERENCIA MECÁNICA (Ancho 60mm): Colisión entre ",
+      errColisionPlegado: "❌ COLISIÓN EN PLEGADO: Espacio insuficiente entre brazos ",
+      tipoLabel: "Tipo de configuración",
+      soportesSugeridos: "🔩 Soportes de pared sugeridos (tabla LLAZA): ",
+      soportesKits: " kit(s) de soporte",
+      soportesInvalido: "⚠ La línea es demasiado corta para esta combinación de Salida y nº de brazos (según tabla LLAZA).",
+      soportesLmax: " — línea superior al máximo tabulado, usando el valor máximo disponible.",
+      soportesLineaMinima: " Línea mínima para esta combinación: ",
+      errLineaMaximaPre: "⚠ Línea máxima superada para ",
+      errLineaMaximaMid: " brazos: máximo ",
+      planoTitulo: "PLANO DE MONTAJE",
+      metaPedido: "Pedido",
+      metaCliente: "Cliente",
+      metaLinea: "Línea",
+      metaSalida: "Salida",
+      metaMotor: "Motor",
+      motorIzq: "IZQUIERDA",
+      motorDer: "DERECHA",
+      thComponente: "Tipo de Soporte / Componente",
+      thCota: "Cota (mm)",
+      thDesc: "Descripción",
+      descMotor: "Posición del cabezal de motorización del eje mecánico",
+      descSoporte: "Distancia desde el extremo izquierdo (0)",
+      badgePared: "Soporte Pared",
+      badgeBrazoI: "Soporte Brazo I",
+      badgeBrazoD: "Soporte Brazo D",
+      confirmClear: "¿Seguro que deseas limpiar todos los campos?",
+      notifClear: "🗑️ Datos limpiados",
+      notifExport: "⬇ PNG Exportado",
+      lblObservaciones: "📝 Observaciones del Plano:",
+      phObservaciones: "Escribe aquí cualquier aclaración técnica o notas sobre la instalación..."
+    },
+    en: {
+      titleMain: "MODULBOX Sombrex Configurator",
+      subtitleMain: "Onyx real-scale arms (+100mm) with visual cross and collision simulation",
+      offlineMsg: "Offline — the app keeps working with the data saved on this device.",
+      installMsg: "Install this app on your phone to use it offline.",
+      installBtn: "Install",
+      lblPedido: "📋 Order No.",
+      lblCliente: "👤 Customer",
+      phPedido: "e.g., 12345",
+      phCliente: "Customer name",
+      secDim: "📏 Dimensions & Motorization",
+      lblModelo: "🏗️ Model",
+      lblMaquina: "⚙️ Gearbox",
+      lblLinea: "Width L (mm)",
+      lblSalida: "Projection S (mm)",
+      phLinea: "e.g., 6000",
+      lblLadoMotor: "⚡ Motor Side",
+      lblHolgura: "🔧 Safety clearance (mm)",
+      lblGrosorTapa: "🧵 End cap thickness (mm)",
+      phGrosorTapa: "e.g., 19",
+      thCotaTaller: "Square bar dimension (mm)",
+      colTerminalTaller: "Load bar terminal (mm)",
+      optSi: "Yes",
+      optNo: "No",
+      optMotorIzq: "Left (L)",
+      optMotorDer: "Right (R)",
+      optElegir: "— Choose —",
+      optBrazos2: "2 arms",
+      optBrazos3: "3 arms",
+      optBrazos4: "4 arms",
+      secSoportes: "🔧 Bracket Placement",
+      lblCasPared: "📍 WALL Brackets (mm, separated by comma or break)",
+      phCasPared: "Example: 250, 3000, 5750",
+      lblNumBrazos: "💪 Number of arms (2–4)",
+      lblBC: "✖️ Crossed Arms",
+      lblBCnota: "(2 arms only)",
+      secPerfiles: "🏠 Canopy/lyre and lower profiles",
+      lblPerfilTejadillo: "🏠 Canopy",
+      lblNumTejadillo: "Nº brackets",
+      lblPerfilLiraPosterior: "🏠 Rear Lyre profile",
+      lblNumLiraPosterior: "Nº brackets",
+      lblPerfilLiraCofre: "🏠 Lyre/Cassette profile",
+      lblNumLiraCofre: "Nº brackets",
+      lblPerfilInferior: "🏠 Lower profile",
+      lblPerfilInferiorNota: "(FullBOX only)",
+      lblNumInferior: "Nº brackets",
+      badgeLira: "Canopy Bracket",
+      badgeLiraPosterior: "Rear Lyre Bracket",
+      badgeLiraCofre: "Lyre/Cassette Bracket",
+      badgeInferior: "Lower Profile Bracket",
+      tablaTerminales: "Arm terminal calculation",
+      terminalFijo: "Fixed terminal (no Canopy)",
+      terminalRegulable: "Adjustable terminal (with Canopy)",
+      colBrazo: "Arm",
+      colSoporte: "Support position (mm)",
+      colSoporteTaller: "Square bar support position (mm)",
+      colTerminal: "Terminal position (mm)",
+      brazoLabel: "Arm",
+      brazoSelect: "— Side —",
+      brazoIzq: "Left (Red band) → folds right",
+      brazoDer: "Right (Green band) → folds left",
+      brazoCota: "Coordinate in mm",
+      btnSugerir: "🧮 Suggest brackets",
+      notifSugerir: "🧮 Brackets suggested",
+      errSugerirInvalido: "Can't suggest brackets: the width is too short for this combination.",
+      errSugerirSinDatos: "No position data for this Projection/Width combination.",
+      confirmSugerir: "This will replace the current content of \"WALL Brackets\" with the automatic suggestion. Continue?",
+      errSugerirSinBrazos: "Enter (or calculate with \"Calculate arm position\") the coordinate and side of every arm before suggesting the wall brackets.",
+      btnCalcularBrazos: "📐 Calculate arm position",
+      notifCalcularBrazos: "📐 Arm position calculated",
+      errCalcularFaltaLado: "Select the side (left/right) of every arm before calculating its position.",
+      errCalcularInvalido: "Can't calculate: check Width, Projection and number of arms (combination out of table range or below minimum).",
+      errCalcularFueraRango: "This side combination doesn't fit within the width (LLAZA tables only cover a single \"facing\" gap). Try outer arms folding toward the centre with only one facing pair in the middle.",
+      confirmCalcularBrazos: "This will replace the arm coordinates already entered with the automatic calculation. Continue?",
+      btnPrint: "🖨 Print (Client)",
+      btnPrintTaller: "🖨 Print (Workshop)",
+      btnPDF: "📄 PDF",
+      btnExport: "⬇ PNG",
+      btnClear: "🗑️ Clear All",
+      errPdfPng: "The export modules could not be loaded (requires internet connection).",
+      errExport: "Error generating the file.",
+      msgPlaceholder: "📐 Enter dimensions and dimensions to automatically generate the plan",
+      errLinea: "Enter a valid width (greater than 0 mm).",
+      errSalida: "Projection cannot be negative.",
+      warSalida: "Projection is greater than the width.",
+      errOverlap: "❌ MECHANICAL INTERFERENCE (Width 60mm): Collision between ",
+      errColisionPlegado: "❌ FOLDING COLLISION: Insufficient space between arms ",
+      tipoLabel: "Configuration type",
+      soportesSugeridos: "🔩 Suggested wall brackets (LLAZA table): ",
+      soportesKits: " support kit(s)",
+      soportesInvalido: "⚠ The width is too short for this Projection / number of arms combination (per LLAZA table).",
+      soportesLmax: " — width above the tabulated maximum, using the highest available value.",
+      soportesLineaMinima: " Minimum width for this combination: ",
+      errLineaMaximaPre: "⚠ Maximum width exceeded for ",
+      errLineaMaximaMid: " arms: maximum ",
+      planoTitulo: "ASSEMBLY PLAN",
+      metaPedido: "Order",
+      metaCliente: "Customer",
+      metaLinea: "Width",
+      metaSalida: "Projection",
+      metaMotor: "Motor",
+      motorIzq: "LEFT",
+      motorDer: "RIGHT",
+      thComponente: "Bracket / Component Type",
+      thCota: "Dimension (mm)",
+      thDesc: "Description",
+      descMotor: "Position of the motorized head on the mechanical shaft",
+      descSoporte: "Distance from the left end (0)",
+      badgePared: "Wall Bracket",
+      badgeBrazoI: "Arm Bracket L",
+      badgeBrazoD: "Arm Bracket R",
+      confirmClear: "Are you sure you want to clear all fields?",
+      notifClear: "🗑️ Data cleared",
+      notifExport: "⬇ PNG Exported",
+      lblObservaciones: "📝 Plan Observations:",
+      phObservaciones: "Enter any structural notes or dynamic field requirements here..."
+    },
+    fr: {
+      titleMain: "Configurateur MODULBOX Sombrex",
+      subtitleMain: "Bras Onyx à échelle réelle (+100mm) avec simulation visuelle de croisement et de collision",
+      offlineMsg: "Hors ligne — l'application continue de fonctionner avec les données enregistrées sur cet appareil.",
+      installMsg: "Installez cette application sur votre mobile pour l'utiliser hors ligne.",
+      installBtn: "Installer",
+      lblPedido: "📋 Nº Commande",
+      lblCliente: "👤 Client",
+      phPedido: "Ex. 12345",
+      phCliente: "Nom du client",
+      secDim: "📏 Dimensions et Motorisation",
+      lblModelo: "🏗️ Modèle",
+      lblMaquina: "⚙️ Machine",
+      lblLinea: "Largeur L (mm)",
+      lblSalida: "Projection P (mm)",
+      phLinea: "Ex. 6000",
+      lblLadoMotor: "⚡ Côté du Moteur",
+      lblHolgura: "🔧 Jeu de sécurité (mm)",
+      lblGrosorTapa: "🧵 Épaisseur de l'embout (mm)",
+      phGrosorTapa: "Ex. 19",
+      thCotaTaller: "Cote barre carrée (mm)",
+      colTerminalTaller: "Terminal barre de charge (mm)",
+      optSi: "Oui",
+      optNo: "Non",
+      optMotorIzq: "Gauche (G)",
+      optMotorDer: "Droite (D)",
+      optElegir: "— Choisir —",
+      optBrazos2: "2 bras",
+      optBrazos3: "3 bras",
+      optBrazos4: "4 bras",
+      secSoportes: "🔧 Configuration des supports",
+      lblCasPared: "📍 Supports MURAUX (mm, séparés par des virgules ou des retours à la ligne)",
+      phCasPared: "Exemple : 250, 3000, 5750",
+      lblNumBrazos: "💪 Nombre de bras (2 à 4)",
+      lblBC: "✖️ Bras croisés",
+      lblBCnota: "(2 bras uniquement)",
+      secPerfiles: "🏠 Profilés auvent/lyre et inférieur",
+      lblPerfilTejadillo: "🏠 Auvent",
+      lblNumTejadillo: "Nº supports",
+      lblPerfilLiraPosterior: "🏠 Profilé Lyre arrière",
+      lblNumLiraPosterior: "Nº supports",
+      lblPerfilLiraCofre: "🏠 Profilé Lyre/Coffre",
+      lblNumLiraCofre: "Nº supports",
+      lblPerfilInferior: "🏠 Profilé inférieur",
+      lblPerfilInferiorNota: "(Full BOX uniquement)",
+      lblNumInferior: "Nº supports",
+      badgeLira: "Support Auvent",
+      badgeLiraPosterior: "Support Lyre arrière",
+      badgeLiraCofre: "Support Lyre/Coffre",
+      badgeInferior: "Support Profilé inférieur",
+      tablaTerminales: "Calcul du terminal de bras",
+      terminalFijo: "Terminal fixe (sans Auvent)",
+      terminalRegulable: "Terminal réglable (avec Auvent)",
+      colBrazo: "Bras",
+      colSoporte: "Position support (mm)",
+      colSoporteTaller: "Position support barre carrée (mm)",
+      colTerminal: "Position terminal (mm)",
+      brazoLabel: "Bras",
+      brazoSelect: "— Côté —",
+      brazoIzq: "Gauche (bande rouge) → plie à droite",
+      brazoDer: "Droite (bande verte) → plie à gauche",
+      brazoCota: "Coordonnée en mm",
+      btnSugerir: "🧮 Suggérer les supports",
+      notifSugerir: "🧮 Supports suggérés",
+      errSugerirInvalido: "Impossible de suggérer les supports : la largeur est trop courte pour cette combinaison.",
+      errSugerirSinDatos: "Pas de données de position pour cette combinaison Projection/Largeur.",
+      confirmSugerir: "Cela remplacera le contenu actuel de « Supports MURAUX » par la suggestion automatique. Continuer ?",
+      errSugerirSinBrazos: "Saisissez (ou calculez avec « Calculer la position des bras ») la coordonnée et le côté de chaque bras avant de suggérer les supports muraux.",
+      btnCalcularBrazos: "📐 Calculer la position des bras",
+      notifCalcularBrazos: "📐 Position des bras calculée",
+      errCalcularFaltaLado: "Sélectionnez le côté (gauche/droite) de chaque bras avant de calculer sa position.",
+      errCalcularInvalido: "Calcul impossible : vérifiez la Largeur, la Projection et le nombre de bras (combinaison hors table ou inférieure au minimum).",
+      errCalcularFueraRango: "Cette combinaison de côtés ne rentre pas dans la largeur (les tables LLAZA ne couvrent qu'un seul espace « opposé »). Essayez avec les bras extérieurs pliant vers le centre et une seule paire opposée au centre.",
+      confirmCalcularBrazos: "Cela remplacera les coordonnées des bras déjà saisies par le calcul automatique. Continuer ?",
+      btnPrint: "🖨 Imprimer (Client)",
+      btnPrintTaller: "🖨 Imprimer (Atelier)",
+      btnPDF: "📄 PDF",
+      btnExport: "⬇ PNG",
+      btnClear: "🗑️ Tout effacer",
+      errPdfPng: "Impossible de charger les modules d'export (connexion internet requise).",
+      errExport: "Erreur lors de la génération du fichier.",
+      msgPlaceholder: "📐 Saisissez les dimensions et coordonnées pour générer le plan automatiquement",
+      errLinea: "Saisissez une largeur valide (supérieure à 0 mm).",
+      errSalida: "La projection ne peut pas être négative.",
+      warSalida: "La projection est supérieure à la largeur.",
+      errOverlap: "❌ INTERFÉRENCE MÉCANIQUE (zone de 60mm) : Collision entre ",
+      errColisionPlegado: "❌ COLLISION DE PLIAGE : Espace insuffisant entre les bras ",
+      tipoLabel: "Type de configuration",
+      soportesSugeridos: "🔩 Supports muraux suggérés (table LLAZA) : ",
+      soportesKits: " kit(s) de support",
+      soportesInvalido: "⚠ La largeur est trop courte pour cette combinaison de Projection et nombre de bras (selon la table LLAZA).",
+      soportesLmax: " — largeur supérieure au maximum tabulé, valeur maximale disponible utilisée.",
+      soportesLineaMinima: " Largeur minimale pour cette combinaison : ",
+      errLineaMaximaPre: "⚠ Largeur maximale dépassée pour ",
+      errLineaMaximaMid: " bras : maximum ",
+      planoTitulo: "PLAN DE MONTAGE",
+      metaPedido: "Commande",
+      metaCliente: "Client",
+      metaLinea: "Largeur",
+      metaSalida: "Projection",
+      metaMotor: "Moteur",
+      motorIzq: "GAUCHE",
+      motorDer: "DROITE",
+      thComponente: "Type de support / composant",
+      thCota: "Cote (mm)",
+      thDesc: "Description",
+      descMotor: "Position de la tête de motorisation de l'axe mécanique",
+      descSoporte: "Distance depuis l'extrémité gauche (0)",
+      badgePared: "Support mural",
+      badgeBrazoI: "Support de bras G",
+      badgeBrazoD: "Support de bras D",
+      confirmClear: "Êtes-vous sûr de vouloir effacer tous les champs ?",
+      notifClear: "🗑️ Données effacées",
+      notifExport: "⬇ PNG exporté",
+      lblObservaciones: "📝 Observations du plan :",
+      phObservaciones: "Écrivez ici toute précision technique ou note sur l'installation..."
+    },
+    de: {
+      titleMain: "MODULBOX Sombrex Konfigurator",
+      subtitleMain: "Onyx-Arme in Originalgröße (+100mm) mit visueller Kreuzungs- und Kollisionssimulation",
+      offlineMsg: "Offline — die App funktioniert weiterhin mit den auf diesem Gerät gespeicherten Daten.",
+      installMsg: "Installieren Sie diese App auf Ihrem Handy, um sie offline zu nutzen.",
+      installBtn: "Installieren",
+      lblPedido: "📋 Bestellnr.",
+      lblCliente: "👤 Kunde",
+      phPedido: "Z.B. 12345",
+      phCliente: "Name des Kunden",
+      secDim: "📏 Abmessungen und Motorisierung",
+      lblModelo: "🏗️ Modell",
+      lblMaquina: "⚙️ Maschine",
+      lblLinea: "Strecke L (mm)",
+      lblSalida: "Ausgang S (mm)",
+      phLinea: "Z.B. 6000",
+      lblLadoMotor: "⚡ Motorseite",
+      lblHolgura: "🔧 Sicherheitsspiel (mm)",
+      lblGrosorTapa: "🧵 Kappendicke (mm)",
+      phGrosorTapa: "Z.B. 19",
+      thCotaTaller: "Maß Vierkantstab (mm)",
+      colTerminalTaller: "Terminal Laststange (mm)",
+      optSi: "Ja",
+      optNo: "Nein",
+      optMotorIzq: "Links (L)",
+      optMotorDer: "Rechts (R)",
+      optElegir: "— Wählen —",
+      optBrazos2: "2 Arme",
+      optBrazos3: "3 Arme",
+      optBrazos4: "4 Arme",
+      secSoportes: "🔧 Konfiguration der Stützen",
+      lblCasPared: "📍 WAND-Stützen (mm, getrennt durch Kommas oder Zeilenumbrüche)",
+      phCasPared: "Beispiel: 250, 3000, 5750",
+      lblNumBrazos: "💪 Anzahl der Arme (2–4)",
+      lblBC: "✖️ Gekreuzte Arme",
+      lblBCnota: "(nur 2 Arme)",
+      secPerfiles: "🏠 Vordach-/Lyra- und Unterprofile",
+      lblPerfilTejadillo: "🏠 Vordach",
+      lblNumTejadillo: "Anz. Stützen",
+      lblPerfilLiraPosterior: "🏠 Lyraprofil hinten",
+      lblNumLiraPosterior: "Anz. Stützen",
+      lblPerfilLiraCofre: "🏠 Lyra-/Gehäuseprofil",
+      lblNumLiraCofre: "Anz. Stützen",
+      lblPerfilInferior: "🏠 Unteres Profil",
+      lblPerfilInferiorNota: "(nur Full BOX)",
+      lblNumInferior: "Anz. Stützen",
+      badgeLira: "Vordachstütze",
+      badgeLiraPosterior: "Lyrastütze hinten",
+      badgeLiraCofre: "Lyra-/Gehäusestütze",
+      badgeInferior: "Stütze unteres Profil",
+      tablaTerminales: "Berechnung der Armklemme",
+      terminalFijo: "Feste Klemme (ohne Vordach)",
+      terminalRegulable: "Verstellbare Klemme (mit Vordach)",
+      colBrazo: "Arm",
+      colSoporte: "Stützposition (mm)",
+      colSoporteTaller: "Stützposition Vierkantstab (mm)",
+      colTerminal: "Klemmenposition (mm)",
+      brazoLabel: "Arm",
+      brazoSelect: "— Seite —",
+      brazoIzq: "Links (rotes Band) → faltet nach rechts",
+      brazoDer: "Rechts (grünes Band) → faltet nach links",
+      brazoCota: "Koordinate in mm",
+      btnSugerir: "🧮 Stützen vorschlagen",
+      notifSugerir: "🧮 Stützen vorgeschlagen",
+      errSugerirInvalido: "Stützen können nicht vorgeschlagen werden: Die Strecke ist für diese Kombination zu kurz.",
+      errSugerirSinDatos: "Keine Positionsdaten für diese Ausgang/Strecke-Kombination.",
+      confirmSugerir: "Dies ersetzt den aktuellen Inhalt von „WAND-Stützen\" durch den automatischen Vorschlag. Fortfahren?",
+      errSugerirSinBrazos: "Geben Sie (oder berechnen Sie mit „Armposition berechnen\") die Koordinate und Seite jedes Arms ein, bevor Sie die Wandstützen vorschlagen.",
+      btnCalcularBrazos: "📐 Armposition berechnen",
+      notifCalcularBrazos: "📐 Armposition berechnet",
+      errCalcularFaltaLado: "Wählen Sie die Seite (links/rechts) jedes Arms, bevor Sie seine Position berechnen.",
+      errCalcularInvalido: "Berechnung nicht möglich: Prüfen Sie Strecke, Ausgang und Anzahl der Arme (Kombination außerhalb der Tabelle oder unter dem Minimum).",
+      errCalcularFueraRango: "Diese Seitenkombination passt nicht in die Strecke (die LLAZA-Tabellen decken nur eine einzige „gegenüberliegende\" Lücke ab). Versuchen Sie es mit den äußeren Armen, die zur Mitte falten, und nur einem gegenüberliegenden Paar in der Mitte.",
+      confirmCalcularBrazos: "Dies ersetzt die bereits eingegebenen Armkoordinaten durch die automatische Berechnung. Fortfahren?",
+      btnPrint: "🖨 Drucken (Kunde)",
+      btnPrintTaller: "🖨 Drucken (Werkstatt)",
+      btnPDF: "📄 PDF",
+      btnExport: "⬇ PNG",
+      btnClear: "🗑️ Alles löschen",
+      errPdfPng: "Die Exportmodule konnten nicht geladen werden (Internetverbindung erforderlich).",
+      errExport: "Fehler beim Erstellen der Datei.",
+      msgPlaceholder: "📐 Geben Sie die Abmessungen und Koordinaten ein, um den Plan automatisch zu erstellen",
+      errLinea: "Geben Sie eine gültige Strecke ein (größer als 0 mm).",
+      errSalida: "Der Ausgang darf nicht negativ sein.",
+      warSalida: "Der Ausgang ist größer als die Strecke.",
+      errOverlap: "❌ MECHANISCHE INTERFERENZ (Breite 60mm): Kollision zwischen ",
+      errColisionPlegado: "❌ FALTKOLLISION: Unzureichender Abstand zwischen den Armen ",
+      tipoLabel: "Konfigurationstyp",
+      soportesSugeridos: "🔩 Vorgeschlagene Wandstützen (LLAZA-Tabelle): ",
+      soportesKits: " Stützen-Kit(s)",
+      soportesInvalido: "⚠ Die Strecke ist für diese Kombination aus Ausgang und Anzahl der Arme zu kurz (laut LLAZA-Tabelle).",
+      soportesLmax: " — Strecke über dem tabellierten Maximum, es wird der höchste verfügbare Wert verwendet.",
+      soportesLineaMinima: " Mindeststrecke für diese Kombination: ",
+      errLineaMaximaPre: "⚠ Maximale Strecke überschritten für ",
+      errLineaMaximaMid: " Arme: Maximum ",
+      planoTitulo: "MONTAGEPLAN",
+      metaPedido: "Bestellung",
+      metaCliente: "Kunde",
+      metaLinea: "Strecke",
+      metaSalida: "Ausgang",
+      metaMotor: "Motor",
+      motorIzq: "LINKS",
+      motorDer: "RECHTS",
+      thComponente: "Stützen-/Bauteiltyp",
+      thCota: "Position (mm)",
+      thDesc: "Beschreibung",
+      descMotor: "Position des Motorisierungskopfes der mechanischen Achse",
+      descSoporte: "Abstand vom linken Ende (0)",
+      badgePared: "Wandstütze",
+      badgeBrazoI: "Armstütze L",
+      badgeBrazoD: "Armstütze R",
+      confirmClear: "Möchten Sie wirklich alle Felder löschen?",
+      notifClear: "🗑️ Daten gelöscht",
+      notifExport: "⬇ PNG exportiert",
+      lblObservaciones: "📝 Anmerkungen zum Plan:",
+      phObservaciones: "Schreiben Sie hier technische Hinweise oder Installationsanmerkungen..."
+    },
+    it: {
+      titleMain: "Configuratore MODULBOX Sombrex",
+      subtitleMain: "Bracci Onyx a scala reale (+100mm) con simulazione visiva di incrocio e collisione",
+      offlineMsg: "Offline — l'app continua a funzionare con i dati salvati sul dispositivo.",
+      installMsg: "Installa questa app sul tuo cellulare per usarla offline.",
+      installBtn: "Installa",
+      lblPedido: "📋 Nº Ordine",
+      lblCliente: "👤 Cliente",
+      phPedido: "Es. 12345",
+      phCliente: "Nome del cliente",
+      secDim: "📏 Dimensioni e Motorizzazione",
+      lblModelo: "🏗️ Modello",
+      lblMaquina: "⚙️ Riduttore",
+      lblLinea: "Lunghezza L (mm)",
+      lblSalida: "Sporgenza S (mm)",
+      phLinea: "Es. 6000",
+      lblLadoMotor: "⚡ Lato Motore",
+      lblHolgura: "🔧 Gioco di sicurezza (mm)",
+      lblGrosorTapa: "🧵 Spessore tappo (mm)",
+      phGrosorTapa: "Es. 19",
+      thCotaTaller: "Quota barra quadra (mm)",
+      colTerminalTaller: "Terminale barra di carico (mm)",
+      optSi: "Sì",
+      optNo: "No",
+      optMotorIzq: "Sinistra (S)",
+      optMotorDer: "Destra (D)",
+      optElegir: "— Scegli —",
+      optBrazos2: "2 bracci",
+      optBrazos3: "3 bracci",
+      optBrazos4: "4 bracci",
+      secSoportes: "🔧 Configurazione delle staffe",
+      lblCasPared: "📍 Staffe a MURO (mm, separate da virgole o a capo)",
+      phCasPared: "Esempio: 250, 3000, 5750",
+      lblNumBrazos: "💪 Numero di bracci (2–4)",
+      lblBC: "✖️ Bracci Incrociati",
+      lblBCnota: "(solo 2 bracci)",
+      secPerfiles: "🏠 Profili tettuccio/lira e inferiore",
+      lblPerfilTejadillo: "🏠 Tettuccio",
+      lblNumTejadillo: "Nº staffe",
+      lblPerfilLiraPosterior: "🏠 Profilo Lira posteriore",
+      lblNumLiraPosterior: "Nº staffe",
+      lblPerfilLiraCofre: "🏠 Profilo Lira/Cassonetto",
+      lblNumLiraCofre: "Nº staffe",
+      lblPerfilInferior: "🏠 Profilo Inferiore",
+      lblPerfilInferiorNota: "(solo Full BOX)",
+      lblNumInferior: "Nº staffe",
+      badgeLira: "Staffa Tettuccio",
+      badgeLiraPosterior: "Staffa Lira posteriore",
+      badgeLiraCofre: "Staffa Lira/Cassonetto",
+      badgeInferior: "Staffa Profilo Inferiore",
+      tablaTerminales: "Calcolo del terminale del braccio",
+      terminalFijo: "Terminale fisso (senza Tettuccio)",
+      terminalRegulable: "Terminale regolabile (con Tettuccio)",
+      colBrazo: "Braccio",
+      colSoporte: "Posizione staffa (mm)",
+      colSoporteTaller: "Posizione staffa barra quadra (mm)",
+      colTerminal: "Posizione terminale (mm)",
+      brazoLabel: "Braccio",
+      brazoSelect: "— Lato —",
+      brazoIzq: "Sinistra (banda rossa) → piega a destra",
+      brazoDer: "Destra (banda verde) → piega a sinistra",
+      brazoCota: "Coordinata in mm",
+      btnSugerir: "🧮 Suggerisci staffe",
+      notifSugerir: "🧮 Staffe suggerite",
+      errSugerirInvalido: "Impossibile suggerire le staffe: la lunghezza è troppo corta per questa combinazione.",
+      errSugerirSinDatos: "Nessun dato di posizione per questa combinazione Sporgenza/Lunghezza.",
+      confirmSugerir: "Questo sostituirà il contenuto attuale di \"Staffe a MURO\" con il suggerimento automatico. Continuare?",
+      errSugerirSinBrazos: "Inserisci (o calcola con \"Calcola posizione bracci\") la coordinata e il lato di ogni braccio prima di suggerire le staffe a muro.",
+      btnCalcularBrazos: "📐 Calcola posizione bracci",
+      notifCalcularBrazos: "📐 Posizione bracci calcolata",
+      errCalcularFaltaLado: "Seleziona il lato (sinistra/destra) di ogni braccio prima di calcolarne la posizione.",
+      errCalcularInvalido: "Impossibile calcolare: controlla Lunghezza, Sporgenza e numero di bracci (combinazione fuori tabella o sotto il minimo).",
+      errCalcularFueraRango: "Questa combinazione di lati non rientra nella lunghezza (le tabelle LLAZA coprono solo un unico spazio \"contrapposto\"). Prova con i bracci esterni piegati verso il centro e solo una coppia contrapposta al centro.",
+      confirmCalcularBrazos: "Questo sostituirà le coordinate dei bracci già inserite con il calcolo automatico. Continuare?",
+      btnPrint: "🖨 Stampa (Cliente)",
+      btnPrintTaller: "🖨 Stampa (Officina)",
+      btnPDF: "📄 PDF",
+      btnExport: "⬇ PNG",
+      btnClear: "🗑️ Cancella tutto",
+      errPdfPng: "Impossibile caricare i moduli di esportazione (richiede connessione internet).",
+      errExport: "Errore durante la generazione del file.",
+      msgPlaceholder: "📐 Inserisci le dimensioni e le coordinate per generare automaticamente lo schema",
+      errLinea: "Inserisci una lunghezza valida (maggiore di 0 mm).",
+      errSalida: "La sporgenza non può essere negativa.",
+      warSalida: "La sporgenza è maggiore della lunghezza.",
+      errOverlap: "❌ INTERFERENZA MECCANICA (Larghezza 60mm): Collisione tra ",
+      errColisionPlegado: "❌ COLLISIONE IN PIEGATURA: Spazio insufficiente tra i bracci ",
+      tipoLabel: "Tipo di configurazione",
+      soportesSugeridos: "🔩 Staffe a muro suggerite (tabella LLAZA): ",
+      soportesKits: " kit di staffe",
+      soportesInvalido: "⚠ La lunghezza è troppo corta per questa combinazione di Sporgenza e numero di bracci (secondo la tabella LLAZA).",
+      soportesLmax: " — lunghezza superiore al massimo tabulato, viene usato il valore massimo disponibile.",
+      soportesLineaMinima: " Lunghezza minima per questa combinazione: ",
+      errLineaMaximaPre: "⚠ Lunghezza massima superata per ",
+      errLineaMaximaMid: " bracci: massimo ",
+      planoTitulo: "SCHEMA DI MONTAGGIO",
+      metaPedido: "Ordine",
+      metaCliente: "Cliente",
+      metaLinea: "Lunghezza",
+      metaSalida: "Sporgenza",
+      metaMotor: "Motore",
+      motorIzq: "SINISTRA",
+      motorDer: "DESTRA",
+      thComponente: "Tipo di staffa / componente",
+      thCota: "Posizione (mm)",
+      thDesc: "Descrizione",
+      descMotor: "Posizione della testa di motorizzazione dell'asse meccanico",
+      descSoporte: "Distanza dall'estremità sinistra (0)",
+      badgePared: "Staffa a muro",
+      badgeBrazoI: "Staffa braccio S",
+      badgeBrazoD: "Staffa braccio D",
+      confirmClear: "Sei sicuro di voler cancellare tutti i campi?",
+      notifClear: "🗑️ Dati cancellati",
+      notifExport: "⬇ PNG esportato",
+      lblObservaciones: "📝 Note sullo schema:",
+      phObservaciones: "Scrivi qui eventuali chiarimenti tecnici o note sull'installazione..."
+    },
+    pt: {
+      titleMain: "Configurador MODULBOX Sombrex",
+      subtitleMain: "Braços Onyx em escala real (+100mm) com simulação visual de cruzamento e colisão",
+      offlineMsg: "Sem ligação — a aplicação continua a funcionar com os dados guardados neste dispositivo.",
+      installMsg: "Instale esta aplicação no seu telemóvel para a usar sem ligação.",
+      installBtn: "Instalar",
+      lblPedido: "📋 Nº Encomenda",
+      lblCliente: "👤 Cliente",
+      phPedido: "Ex. 12345",
+      phCliente: "Nome do cliente",
+      secDim: "📏 Dimensões e Motorização",
+      lblModelo: "🏗️ Modelo",
+      lblMaquina: "⚙️ Redutor",
+      lblLinea: "Largura L (mm)",
+      lblSalida: "Projeção S (mm)",
+      phLinea: "Ex. 6000",
+      lblLadoMotor: "⚡ Lado do Motor",
+      lblHolgura: "🔧 Folga de segurança (mm)",
+      lblGrosorTapa: "🧵 Espessura da tampa (mm)",
+      phGrosorTapa: "Ex. 19",
+      thCotaTaller: "Cota barra quadrada (mm)",
+      colTerminalTaller: "Terminal barra de carga (mm)",
+      optSi: "Sim",
+      optNo: "Não",
+      optMotorIzq: "Esquerda (E)",
+      optMotorDer: "Direita (D)",
+      optElegir: "— Escolher —",
+      optBrazos2: "2 braços",
+      optBrazos3: "3 braços",
+      optBrazos4: "4 braços",
+      secSoportes: "🔧 Configuração dos suportes",
+      lblCasPared: "📍 Suportes de PAREDE (mm, separados por vírgulas ou quebras de linha)",
+      phCasPared: "Exemplo: 250, 3000, 5750",
+      lblNumBrazos: "💪 Número de braços (2–4)",
+      lblBC: "✖️ Braços Cruzados",
+      lblBCnota: "(apenas 2 braços)",
+      secPerfiles: "🏠 Perfis telhadinho/lira e inferior",
+      lblPerfilTejadillo: "🏠 Telhadinho",
+      lblNumTejadillo: "Nº suportes",
+      lblPerfilLiraPosterior: "🏠 Perfil Lira Posterior",
+      lblNumLiraPosterior: "Nº suportes",
+      lblPerfilLiraCofre: "🏠 Perfil Lira/Cofre",
+      lblNumLiraCofre: "Nº suportes",
+      lblPerfilInferior: "🏠 Perfil Inferior",
+      lblPerfilInferiorNota: "(apenas Full BOX)",
+      lblNumInferior: "Nº suportes",
+      badgeLira: "Suporte Telhadinho",
+      badgeLiraPosterior: "Suporte Lira Posterior",
+      badgeLiraCofre: "Suporte Lira/Cofre",
+      badgeInferior: "Suporte Perfil Inferior",
+      tablaTerminales: "Cálculo do terminal do braço",
+      terminalFijo: "Terminal fixo (sem Telhadinho)",
+      terminalRegulable: "Terminal regulável (com Telhadinho)",
+      colBrazo: "Braço",
+      colSoporte: "Posição do suporte (mm)",
+      colSoporteTaller: "Posição do suporte barra quadrada (mm)",
+      colTerminal: "Posição do terminal (mm)",
+      brazoLabel: "Braço",
+      brazoSelect: "— Lado —",
+      brazoIzq: "Esquerda (faixa vermelha) → dobra para a direita",
+      brazoDer: "Direita (faixa verde) → dobra para a esquerda",
+      brazoCota: "Coordenada em mm",
+      btnSugerir: "🧮 Sugerir suportes",
+      notifSugerir: "🧮 Suportes sugeridos",
+      errSugerirInvalido: "Não é possível sugerir suportes: a largura é muito curta para esta combinação.",
+      errSugerirSinDatos: "Sem dados de posição para esta combinação Projeção/Largura.",
+      confirmSugerir: "Isto substituirá o conteúdo atual de \"Suportes de PAREDE\" pela sugestão automática. Continuar?",
+      errSugerirSinBrazos: "Introduza (ou calcule com \"Calcular posição dos braços\") a coordenada e o lado de cada braço antes de sugerir os suportes de parede.",
+      btnCalcularBrazos: "📐 Calcular posição dos braços",
+      notifCalcularBrazos: "📐 Posição dos braços calculada",
+      errCalcularFaltaLado: "Selecione o lado (esquerda/direita) de cada braço antes de calcular a sua posição.",
+      errCalcularInvalido: "Não é possível calcular: verifique Largura, Projeção e número de braços (combinação fora da tabela ou abaixo do mínimo).",
+      errCalcularFueraRango: "Esta combinação de lados não encaixa na largura (as tabelas LLAZA cobrem apenas um único espaço \"frente a frente\"). Tente com os braços exteriores a dobrar para o centro e apenas um par frente a frente no centro.",
+      confirmCalcularBrazos: "Isto substituirá as coordenadas dos braços já introduzidas pelo cálculo automático. Continuar?",
+      btnPrint: "🖨 Imprimir (Cliente)",
+      btnPrintTaller: "🖨 Imprimir (Oficina)",
+      btnPDF: "📄 PDF",
+      btnExport: "⬇ PNG",
+      btnClear: "🗑️ Limpar tudo",
+      errPdfPng: "Não foi possível carregar os módulos de exportação (requer ligação à internet).",
+      errExport: "Erro ao gerar o ficheiro.",
+      msgPlaceholder: "📐 Introduza as dimensões e coordenadas para gerar o plano automaticamente",
+      errLinea: "Introduza uma largura válida (maior que 0 mm).",
+      errSalida: "A projeção não pode ser negativa.",
+      warSalida: "A projeção é maior que a largura.",
+      errOverlap: "❌ INTERFERÊNCIA MECÂNICA (zona de 60mm): Colisão entre ",
+      errColisionPlegado: "❌ COLISÃO NA DOBRAGEM: Espaço insuficiente entre os braços ",
+      tipoLabel: "Tipo de configuração",
+      soportesSugeridos: "🔩 Suportes de parede sugeridos (tabela LLAZA): ",
+      soportesKits: " kit(s) de suporte",
+      soportesInvalido: "⚠ A largura é demasiado curta para esta combinação de Projeção e número de braços (segundo a tabela LLAZA).",
+      soportesLmax: " — largura superior ao máximo tabelado, a usar o valor máximo disponível.",
+      soportesLineaMinima: " Largura mínima para esta combinação: ",
+      errLineaMaximaPre: "⚠ Largura máxima excedida para ",
+      errLineaMaximaMid: " braços: máximo ",
+      planoTitulo: "PLANO DE MONTAGEM",
+      metaPedido: "Encomenda",
+      metaCliente: "Cliente",
+      metaLinea: "Largura",
+      metaSalida: "Projeção",
+      metaMotor: "Motor",
+      motorIzq: "ESQUERDA",
+      motorDer: "DIREITA",
+      thComponente: "Tipo de suporte / componente",
+      thCota: "Posição (mm)",
+      thDesc: "Descrição",
+      descMotor: "Posição da cabeça de motorização do eixo mecânico",
+      descSoporte: "Distância desde a extremidade esquerda (0)",
+      badgePared: "Suporte de parede",
+      badgeBrazoI: "Suporte de braço E",
+      badgeBrazoD: "Suporte de braço D",
+      confirmClear: "Tem a certeza de que deseja limpar todos os campos?",
+      notifClear: "🗑️ Dados limpos",
+      notifExport: "⬇ PNG exportado",
+      lblObservaciones: "📝 Observações do plano:",
+      phObservaciones: "Escreva aqui quaisquer esclarecimentos técnicos ou notas sobre a instalação..."
+    }
+  };
+
+  let currentLang = 'es';
+  let savedNotesContent = '';
+  // Small helper for the handful of inline strings not routed through i18n[currentLang].
+  const t3 = (es, en, fr, de, it, pt) => {
+    const map = { es, en, fr, de, it, pt };
+    return map[currentLang] ?? en;
+  };
+  const ladoLetra = (lado) => lado === 'der' ? t3('D', 'R', 'D', 'R', 'D', 'D') : t3('I', 'L', 'G', 'L', 'S', 'E');
+
+  const refs = {
+    pedido:          document.getElementById('pedido'),
+    cliente:         document.getElementById('cliente'),
+    modelo:          document.getElementById('modelo'),
+    maquina:         document.getElementById('maquina'),
+    linea:           document.getElementById('linea'),
+    salida:          document.getElementById('salida'),
+    ladoMotor:       document.getElementById('ladoMotor'),
+    holgura:         document.getElementById('holgura'),
+    grosorTapa:      document.getElementById('grosorTapa'),
+    cotasPared:      document.getElementById('cotasPared'),
+    numBrazos:       document.getElementById('numBrazos'),
+    brazosCruzados:  document.getElementById('brazosCruzados'),
+    perfilTejadillo:     document.getElementById('perfilTejadillo'),
+    numTejadillo:        document.getElementById('numTejadillo'),
+    perfilLiraPosterior: document.getElementById('perfilLiraPosterior'),
+    numLiraPosterior:    document.getElementById('numLiraPosterior'),
+    perfilLiraCofre:     document.getElementById('perfilLiraCofre'),
+    numLiraCofre:        document.getElementById('numLiraCofre'),
+    perfilInferior:      document.getElementById('perfilInferior'),
+    numInferior:         document.getElementById('numInferior'),
+    brazosContainer: document.getElementById('brazosContainer'),
+    alertOut:        document.getElementById('alertOut'),
+    planoOut:        document.getElementById('planoOut'),
+    btnSugerir:      document.getElementById('btnSugerir'),
+    btnCalcularBrazos: document.getElementById('btnCalcularBrazos'),
+    btnPrint:        document.getElementById('btnPrint'),
+    btnPrintTaller:  document.getElementById('btnPrintTaller'),
+    btnPDF:          document.getElementById('btnPDF'),
+    btnExport:       document.getElementById('btnExport'),
+    btnClear:        document.getElementById('btnClear'),
+    btnLangES:       document.getElementById('btnLangES'),
+    btnLangEN:       document.getElementById('btnLangEN'),
+    btnLangFR:       document.getElementById('btnLangFR'),
+    btnLangDE:       document.getElementById('btnLangDE'),
+    btnLangIT:       document.getElementById('btnLangIT'),
+    btnLangPT:       document.getElementById('btnLangPT')
+  };
+
+  let ignoreInput = false;
+
+  const getState = () => {
+    const state = {
+      pedido:     refs.pedido.value,
+      cliente:    refs.cliente.value,
+      modelo:     refs.modelo.value,
+      maquina:    refs.maquina.value,
+      linea:      refs.linea.value,
+      salida:     refs.salida.value,
+      ladoMotor:  refs.ladoMotor.value,
+      holgura:    refs.holgura.value,
+      grosorTapa: refs.grosorTapa.value,
+      cotasPared: refs.cotasPared.value,
+      numBrazos:  refs.numBrazos.value,
+      brazosCruzados: refs.brazosCruzados.value,
+      perfilTejadillo: refs.perfilTejadillo.value,
+      numTejadillo: refs.numTejadillo.value,
+      perfilLiraPosterior: refs.perfilLiraPosterior.value,
+      numLiraPosterior: refs.numLiraPosterior.value,
+      perfilLiraCofre: refs.perfilLiraCofre.value,
+      numLiraCofre: refs.numLiraCofre.value,
+      perfilInferior: refs.perfilInferior.value,
+      numInferior: refs.numInferior.value,
+      observaciones: savedNotesContent,
+      brazosData: []
+    };
+    const n = +refs.numBrazos.value || 0;
+    for (let i = 1; i <= n; i++) {
+      state.brazosData.push({
+        lado: document.getElementById(`lado${i}`)?.value || '',
+        cota: document.getElementById(`cota${i}`)?.value || ''
+      });
+    }
+    return state;
+  };
+
+  const applyState = (state) => {
+    ignoreInput = true;
+    refs.pedido.value     = state.pedido     || '';
+    refs.cliente.value    = state.cliente    || '';
+    refs.modelo.value     = state.modelo     || 'SemiBOX';
+    refs.maquina.value    = state.maquina    || 'NO';
+    refs.linea.value      = state.linea      || '';
+    refs.salida.value     = state.salida     || '2000';
+    refs.ladoMotor.value  = state.ladoMotor  || 'izq';
+    refs.holgura.value    = state.holgura    || '50';
+    refs.grosorTapa.value = state.grosorTapa || '19';
+    refs.cotasPared.value = state.cotasPared || '';
+    refs.numBrazos.value  = state.numBrazos  || '';
+    refs.brazosCruzados.value = state.brazosCruzados || 'NO';
+    refs.perfilTejadillo.value = state.perfilTejadillo || 'NO';
+    refs.numTejadillo.value = state.numTejadillo || '';
+    refs.perfilLiraPosterior.value = state.perfilLiraPosterior || 'NO';
+    refs.numLiraPosterior.value = state.numLiraPosterior || '';
+    refs.perfilLiraCofre.value = state.perfilLiraCofre || 'NO';
+    refs.numLiraCofre.value = state.numLiraCofre || '';
+    refs.perfilInferior.value = state.perfilInferior || 'NO';
+    refs.numInferior.value = state.numInferior || '';
+    savedNotesContent     = state.observaciones || '';
+
+    updateBCAvailability();
+    updatePerfilesAvailability();
+    buildBrazosUI(false);
+    
+    if (state.brazosData && state.brazosData.length) {
+      state.brazosData.forEach((b, idx) => {
+        const i = idx + 1;
+        const ladoEl = document.getElementById(`lado${i}`);
+        const cotaEl = document.getElementById(`cota${i}`);
+        if (ladoEl) ladoEl.value = b.lado;
+        if (cotaEl) cotaEl.value = b.cota;
+      });
+    }
+    ignoreInput = false;
+  };
+
+  let renderTimeout;
+  const scheduleRender = () => {
+    if (ignoreInput) return;
+    clearTimeout(renderTimeout);
+    renderTimeout = setTimeout(() => { render(); saveState(); }, 250);
+  };
+
+  const saveState = () => {
+    localStorage.setItem('modulbox_onyx_state', JSON.stringify(getState()));
+    localStorage.setItem('modulbox_onyx_lang', currentLang);
+  };
+
+  const loadState = () => {
+    const saved = localStorage.getItem('modulbox_onyx_state');
+    const savedLang = localStorage.getItem('modulbox_onyx_lang');
+    if (saved) {
+      try { applyState(JSON.parse(saved)); } catch(e) {}
+    }
+    if (savedLang) {
+      currentLang = savedLang;
+      switchLanguage(currentLang);
+    }
+  };
+
+  const showNotification = (msg) => {
+    const notificationEl = document.getElementById('notification');
+    notificationEl.textContent = msg;
+    notificationEl.classList.add('show');
+    setTimeout(() => notificationEl.classList.remove('show'), 2000);
+  };
+
+  const buildBrazosUI = (triggerRender = true) => {
+    const v = refs.numBrazos.value;
+    refs.brazosContainer.innerHTML = '';
+
+    if (!v) {
+      if (triggerRender) render();
+      return;
+    }
+
+    const n = +v;
+    let html = '';
+    const labels = i18n[currentLang];
+    for (let i = 1; i <= n; i++) {
+      html += `
+        <div class="brazo-item">
+          <label>${labels.brazoLabel} ${i}</label>
+          <select id="lado${i}" class="brazo-input">
+            <option value="">${labels.brazoSelect}</option>
+            <option value="izq">${labels.brazoIzq}</option>
+            <option value="der">${labels.brazoDer}</option>
+          </select>
+          <input id="cota${i}" class="brazo-input" type="number" placeholder="${labels.brazoCota}">
+        </div>`;
+    }
+    refs.brazosContainer.innerHTML = html;
+
+    document.querySelectorAll('.brazo-input').forEach(el => {
+      el.addEventListener('input', scheduleRender);
+    });
+
+    if (triggerRender) render();
+  };
+
+  const switchLanguage = (lang) => {
+    currentLang = lang;
+    const labels = i18n[lang];
+
+    document.getElementById('txtTitleMain').textContent = labels.titleMain;
+    document.getElementById('txtSubtitleMain').textContent = labels.subtitleMain;
+    document.getElementById('offlineBanner').textContent = labels.offlineMsg;
+    document.getElementById('installMsg').textContent = labels.installMsg;
+    document.getElementById('btnInstall').textContent = labels.installBtn;
+    document.getElementById('lblPedido').textContent = labels.lblPedido;
+    document.getElementById('lblCliente').textContent = labels.lblCliente;
+    refs.pedido.placeholder = labels.phPedido;
+    refs.cliente.placeholder = labels.phCliente;
+    document.getElementById('secDim').textContent = labels.secDim;
+    document.getElementById('lblModelo').textContent = labels.lblModelo;
+    document.getElementById('lblMaquina').textContent = labels.lblMaquina;
+    document.getElementById('lblLinea').textContent = labels.lblLinea;
+    document.getElementById('lblSalida').textContent = labels.lblSalida;
+    refs.linea.placeholder = labels.phLinea;
+    document.getElementById('lblLadoMotor').textContent = labels.lblLadoMotor;
+    document.getElementById('lblHolgura').textContent = labels.lblHolgura;
+    document.getElementById('lblGrosorTapa').textContent = labels.lblGrosorTapa;
+    refs.grosorTapa.placeholder = labels.phGrosorTapa;
+    document.getElementById('optMaquinaSi').textContent = labels.optSi;
+    document.getElementById('optMaquinaNo').textContent = labels.optNo;
+    document.getElementById('optBCSi').textContent = labels.optSi;
+    document.getElementById('optBCNo').textContent = labels.optNo;
+    document.getElementById('optMotorIzq').textContent = labels.optMotorIzq;
+    document.getElementById('optMotorDer').textContent = labels.optMotorDer;
+    document.getElementById('optNumBrazosVacio').textContent = labels.optElegir;
+    document.getElementById('optNumBrazos2').textContent = labels.optBrazos2;
+    document.getElementById('optNumBrazos3').textContent = labels.optBrazos3;
+    document.getElementById('optNumBrazos4').textContent = labels.optBrazos4;
+    document.getElementById('secSoportes').textContent = labels.secSoportes;
+    document.getElementById('lblCasPared').textContent = labels.lblCasPared;
+    refs.cotasPared.placeholder = labels.phCasPared;
+    document.getElementById('lblNumBrazos').textContent = labels.lblNumBrazos;
+    document.getElementById('lblBC').textContent = labels.lblBC;
+    document.getElementById('lblBCnota').textContent = labels.lblBCnota;
+    document.getElementById('secPerfiles').textContent = labels.secPerfiles;
+    document.getElementById('lblPerfilTejadillo').textContent = labels.lblPerfilTejadillo;
+    document.getElementById('lblNumTejadillo').textContent = labels.lblNumTejadillo;
+    document.getElementById('lblPerfilLiraPosterior').textContent = labels.lblPerfilLiraPosterior;
+    document.getElementById('lblNumLiraPosterior').textContent = labels.lblNumLiraPosterior;
+    document.getElementById('lblPerfilLiraCofre').textContent = labels.lblPerfilLiraCofre;
+    document.getElementById('lblNumLiraCofre').textContent = labels.lblNumLiraCofre;
+    document.getElementById('lblPerfilInferior').textContent = labels.lblPerfilInferior;
+    document.getElementById('lblPerfilInferiorNota').textContent = labels.lblPerfilInferiorNota;
+    document.getElementById('lblNumInferior').textContent = labels.lblNumInferior;
+    document.getElementById('optTejadilloNo').textContent = labels.optNo;
+    document.getElementById('optTejadilloSi').textContent = labels.optSi;
+    document.getElementById('optLiraPosteriorNo').textContent = labels.optNo;
+    document.getElementById('optLiraPosteriorSi').textContent = labels.optSi;
+    document.getElementById('optLiraCofreNo').textContent = labels.optNo;
+    document.getElementById('optLiraCofreSi').textContent = labels.optSi;
+    document.getElementById('optInferiorNo').textContent = labels.optNo;
+    document.getElementById('optInferiorSi').textContent = labels.optSi;
+
+    refs.btnSugerir.textContent = labels.btnSugerir;
+    refs.btnCalcularBrazos.textContent = labels.btnCalcularBrazos;
+    refs.btnPrint.textContent = labels.btnPrint;
+    refs.btnPrintTaller.textContent = labels.btnPrintTaller;
+    refs.btnPDF.textContent = labels.btnPDF;
+    refs.btnExport.textContent = labels.btnExport;
+    refs.btnClear.textContent = labels.btnClear;
+
+    refs.btnLangES.classList.toggle('active', lang === 'es');
+    refs.btnLangEN.classList.toggle('active', lang === 'en');
+    refs.btnLangFR.classList.toggle('active', lang === 'fr');
+    refs.btnLangDE.classList.toggle('active', lang === 'de');
+    refs.btnLangIT.classList.toggle('active', lang === 'it');
+    refs.btnLangPT.classList.toggle('active', lang === 'pt');
+
+    const currentBrazos = [];
+    document.querySelectorAll('.brazo-item').forEach((item, idx) => {
+      const i = idx + 1;
+      currentBrazos.push({
+        lado: document.getElementById(`lado${i}`)?.value || '',
+        cota: document.getElementById(`cota${i}`)?.value || ''
+      });
+    });
+
+    if (refs.numBrazos.value) {
+      buildBrazosUI(false);
+      currentBrazos.forEach((b, idx) => {
+        const i = idx + 1;
+        if (document.getElementById(`lado${i}`)) document.getElementById(`lado${i}`).value = b.lado;
+        if (document.getElementById(`cota${i}`)) document.getElementById(`cota${i}`).value = b.cota;
+      });
+    }
+
+    render();
+    saveState();
+  };
+
+  const sugerirSoportes = () => {
+    const L = Number(refs.linea.value) || 0;
+    const S = Number(refs.salida.value) || 0;
+    const nbrazos = +refs.numBrazos.value || 0;
+    const labels = i18n[currentLang];
+
+    if (![2, 3, 4].includes(nbrazos) || L <= 0 || S <= 0) {
+      alert(labels.errSugerirInvalido);
+      return;
+    }
+    const brazosOrdenados = [];
+    for (let i = 1; i <= nbrazos; i++) {
+      const cota = document.getElementById('cota' + i)?.value;
+      const lado = document.getElementById('lado' + i)?.value;
+      if (cota === '' || cota === undefined || !lado) { brazosOrdenados.push(null); continue; }
+      brazosOrdenados.push({ cota: +cota, lado });
+    }
+    if (brazosOrdenados.some(b => !b)) {
+      alert(labels.errSugerirSinBrazos);
+      return;
+    }
+    brazosOrdenados.sort((a, b) => a.cota - b.cota);
+
+    const tipo = S <= 2500 ? 'A' : 'B';
+    const result = sugerirPosicionesSoportes(S, L, tipo, brazosOrdenados);
+    if (result.error) {
+      alert(labels.errSugerirSinDatos);
+      return;
+    }
+    if (refs.cotasPared.value.trim() && !confirm(labels.confirmSugerir)) return;
+
+    refs.cotasPared.value = result.positions.join(', ');
+    render();
+    saveState();
+    showNotification(labels.notifSugerir);
+  };
+
+  const calcularPosicionBrazos = () => {
+    const L = Number(refs.linea.value) || 0;
+    const S = Number(refs.salida.value) || 0;
+    const nbrazos = +refs.numBrazos.value || 0;
+    const bc = refs.brazosCruzados.value;
+    const labels = i18n[currentLang];
+
+    if (![2, 3, 4].includes(nbrazos) || L <= 0 || S <= 0) {
+      alert(labels.errCalcularInvalido);
+      return;
+    }
+    const ladoArray = [];
+    for (let i = 1; i <= nbrazos; i++) {
+      ladoArray.push(document.getElementById('lado' + i)?.value || '');
+    }
+    if (ladoArray.some(l => !l)) {
+      alert(labels.errCalcularFaltaLado);
+      return;
+    }
+    const result = calcularPosicionesBrazos(S, L, nbrazos, bc, ladoArray);
+    if (result.error === 'sin_datos') {
+      alert(labels.errCalcularInvalido);
+      return;
+    }
+    if (result.error === 'faltan_lados') {
+      alert(labels.errCalcularFaltaLado);
+      return;
+    }
+    if (result.error === 'fuera_de_rango') {
+      alert(labels.errCalcularFueraRango);
+      return;
+    }
+
+    const hasExisting = ladoArray.some((_, idx) => document.getElementById('cota' + (idx + 1))?.value);
+    if (hasExisting && !confirm(labels.confirmCalcularBrazos)) return;
+
+    result.positions.forEach((pos, idx) => {
+      const cotaEl = document.getElementById('cota' + (idx + 1));
+      if (cotaEl) cotaEl.value = pos;
+    });
+    render();
+    saveState();
+    showNotification(labels.notifCalcularBrazos);
+  };
+
+  const printTaller = () => {
+    document.body.classList.add('print-taller');
+    const cleanup = () => document.body.classList.remove('print-taller');
+    window.addEventListener('afterprint', cleanup, { once: true });
+    window.print();
+    setTimeout(cleanup, 10000);
+  };
+
+  const clearData = () => {
+    if (confirm(i18n[currentLang].confirmClear)) {
+      applyState({ pedido: '', cliente: '', linea: '', salida: '2000', ladoMotor: 'izq', holgura: '50', cotasPared: '', numBrazos: '', observaciones: '', brazosData: [] });
+      render(); saveState();
+      showNotification(i18n[currentLang].notifClear);
+    }
+  };
+
+  const sanitizeFilename = (str) => String(str).replace(/[^a-z0-9_-]+/gi, '_');
+
+  const exportPNG = () => {
+    if (typeof html2canvas === 'undefined') {
+      alert(i18n[currentLang].errPdfPng);
+      return;
+    }
+    const target = refs.planoOut;
+    html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', ignoreElements: el => el.classList && el.classList.contains('col-taller') }).then(canvas => {
+      const link = document.createElement('a');
+      link.download = `Modulbox_${sanitizeFilename(refs.pedido.value || 'Plan')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showNotification(i18n[currentLang].notifExport);
+    }).catch(err => {
+      console.error(err);
+      alert(i18n[currentLang].errExport);
+    });
+  };
+
+  const exportPDF = () => {
+    if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+      alert(i18n[currentLang].errPdfPng);
+      return;
+    }
+    const target = refs.planoOut;
+    html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', ignoreElements: el => el.classList && el.classList.contains('col-taller') }).then(canvas => {
+      const { jsPDF } = window.jspdf;
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: canvas.width >= canvas.height ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`Modulbox_${sanitizeFilename(refs.pedido.value || 'Plan')}.pdf`);
+      showNotification(i18n[currentLang].notifExport);
+    }).catch(err => {
+      console.error(err);
+      alert(i18n[currentLang].errExport);
+    });
+  };
+
+  const updateBCAvailability = () => {
+    const isTwoArms = refs.numBrazos.value === '2';
+    refs.brazosCruzados.disabled = !isTwoArms;
+    if (!isTwoArms) refs.brazosCruzados.value = 'NO';
+  };
+
+  // Disponibilidad de perfiles por Modelo:
+  //  - FullBOX: incorpora los 4 (forzados a Sí, no editables).
+  //  - OPEN: sin Tejadillo ni Lira/Cofre (forzados a No); Lira Posterior opcional.
+  //  - SemiOPEN/SemiBOX: Tejadillo, Lira Posterior y Lira/Cofre opcionales.
+  //  - Perfil Inferior: exclusivo de FullBOX (forzado a No en el resto).
+  const forceSelect = (sel, value) => {
+    sel.disabled = true;
+    sel.value = value;
+  };
+  const updatePerfilesAvailability = () => {
+    const modelo = refs.modelo.value;
+    if (modelo === 'FullBOX') {
+      forceSelect(refs.perfilTejadillo, 'SI');
+      forceSelect(refs.perfilLiraPosterior, 'SI');
+      forceSelect(refs.perfilLiraCofre, 'SI');
+      forceSelect(refs.perfilInferior, 'SI');
+    } else if (modelo === 'OPEN') {
+      forceSelect(refs.perfilTejadillo, 'NO');
+      refs.perfilLiraPosterior.disabled = false;
+      forceSelect(refs.perfilLiraCofre, 'NO');
+      forceSelect(refs.perfilInferior, 'NO');
+    } else {
+      refs.perfilTejadillo.disabled = false;
+      refs.perfilLiraPosterior.disabled = false;
+      refs.perfilLiraCofre.disabled = false;
+      forceSelect(refs.perfilInferior, 'NO');
+    }
+  };
+
+  const init = () => {
+    const inputs = [refs.pedido, refs.cliente, refs.modelo, refs.maquina, refs.linea, refs.salida, refs.ladoMotor, refs.holgura, refs.grosorTapa, refs.cotasPared, refs.brazosCruzados,
+      refs.perfilTejadillo, refs.numTejadillo, refs.perfilLiraPosterior, refs.numLiraPosterior, refs.perfilLiraCofre, refs.numLiraCofre, refs.perfilInferior, refs.numInferior];
+    inputs.forEach(el => {
+      el.addEventListener('input', scheduleRender);
+      if(el.tagName === 'SELECT') {
+        el.addEventListener('change', scheduleRender);
+      }
+    });
+
+    refs.numBrazos.addEventListener('change', () => { updateBCAvailability(); buildBrazosUI(true); });
+    updateBCAvailability();
+    refs.modelo.addEventListener('change', updatePerfilesAvailability);
+    updatePerfilesAvailability();
+
+    refs.btnLangES.addEventListener('click', () => switchLanguage('es'));
+    refs.btnLangEN.addEventListener('click', () => switchLanguage('en'));
+    refs.btnLangFR.addEventListener('click', () => switchLanguage('fr'));
+    refs.btnLangDE.addEventListener('click', () => switchLanguage('de'));
+    refs.btnLangIT.addEventListener('click', () => switchLanguage('it'));
+    refs.btnLangPT.addEventListener('click', () => switchLanguage('pt'));
+
+    refs.btnSugerir.addEventListener('click', sugerirSoportes);
+    refs.btnCalcularBrazos.addEventListener('click', calcularPosicionBrazos);
+    refs.btnPrint.addEventListener('click', () => window.print());
+    refs.btnPrintTaller.addEventListener('click', printTaller);
+    refs.btnPDF.addEventListener('click', exportPDF);
+    refs.btnExport.addEventListener('click', exportPNG);
+    refs.btnClear.addEventListener('click', clearData);
+
+    loadState();
+    render();
+  };
+
+  const validateInputs = (L, brazos) => {
+    const errores  = [];
+    const warnings = [];
+    const labels = i18n[currentLang];
+
+    if (L <= 0) {
+      errores.push(labels.errLinea);
+      refs.linea.classList.add('error');
+    } else {
+      refs.linea.classList.remove('error');
+    }
+
+    brazos.forEach(b => {
+      const input = document.getElementById('cota' + b.n);
+      if (!input) return;
+      if (b.cota < 0 || b.cota > L || isNaN(b.cota)) {
+        input.classList.add('error');
+        errores.push(`P${b.n} cota inválida`);
+      } else {
+        input.classList.remove('error');
+      }
+    });
+
+    return { errores, warnings };
+  };
+
+  const parseParedes = (L) => {
+    const text = refs.cotasPared.value.trim();
+    if (!text) return [];
+    return text
+      .split(/[,\n\s]+/)
+      .map(s => s.trim()).filter(Boolean)
+      .map(Number)
+      .filter(n => !isNaN(n) && n >= 0 && n <= L)
+      .sort((a, b) => a - b);
+  };
+
+  const parseBrazos = (L) => {
+    const n = +refs.numBrazos.value || 0;
+    const brazos = [];
+    for (let i = 1; i <= n; i++) {
+      const cotaInput = document.getElementById('cota' + i);
+      const ladoInput = document.getElementById('lado' + i);
+      if (!cotaInput) continue;
+      const cota = cotaInput.value;
+      const lado = ladoInput.value;
+      if (cota === '' || isNaN(cota)) continue;
+      brazos.push({ n: i, cota: +cota, lado: lado, conflict: false });
+    }
+    return brazos;
+  };
+
+  const render = () => {
+    const L       = Number(refs.linea.value) || 0;
+    const S       = Number(refs.salida.value) || 0;
+    const holgura = Number(refs.holgura.value) || 0;
+    const grosorTapa = Number(refs.grosorTapa.value) || 0;
+    refs.btnPrintTaller.style.display = grosorTapa ? '' : 'none';
+    const pedido  = refs.pedido.value  || '—';
+    const cliente = refs.cliente.value || '—';
+    const motor   = refs.ladoMotor.value;
+    const numBrazosVal = +refs.numBrazos.value || 0;
+    const labels  = i18n[currentLang];
+
+    const brazoRep = getBrazoPlegadoReal(S);
+    // Tipo de configuración según manual MODULBOX-400 (1.3 Línea mínimas): A si S≤2,5m, B si S≥2,75m.
+    const tipoConfig = S > 0 ? (S <= 2500 ? 'A' : 'B') : null;
+    const soportesInfo = (L > 0 && S > 0 && [2,3,4].includes(numBrazosVal))
+      ? getSoportesPared(S, L, numBrazosVal)
+      : null;
+    const lineaMinima = (S > 0 && [2,3,4].includes(numBrazosVal)) ? getLineaMinima(S, numBrazosVal) : null;
+    const lineaMaxima = LINEA_MAX_POR_BRAZOS[numBrazosVal] || null;
+    const excedeLineaMax = L > 0 && lineaMaxima != null && L > lineaMaxima;
+
+    const paredes = parseParedes(L);
+    const brazos  = parseBrazos(L);
+
+    const maquina = refs.maquina.value;
+
+    // Tejadillo, Lira Posterior y Lira/Cofre comparten la misma tabla de cantidad
+    // (manual 1.5); Perfil Inferior usa su propia tabla y es exclusivo de FullBOX.
+    const calcPerfil = (selectRef, numRef, sugeridoFn) => {
+      const activo = selectRef.value === 'SI';
+      const sugerido = (activo && L > 0) ? sugeridoFn() : 0;
+      numRef.placeholder = sugerido ? `${t3('Sugerido', 'Suggested', 'Suggéré', 'Vorschlag', 'Suggerito', 'Sugerido')}: ${sugerido}` : '';
+      const n = activo ? (numRef.value !== '' ? Math.max(0, +numRef.value) : sugerido) : 0;
+      const posiciones = (activo && L > 0) ? posicionesEquidistantes(L, n) : [];
+      return { activo, n, posiciones };
+    };
+
+    const tejadillo     = calcPerfil(refs.perfilTejadillo, refs.numTejadillo, () => sugerirNumLira(L, maquina, 'SI'));
+    const liraPosterior = calcPerfil(refs.perfilLiraPosterior, refs.numLiraPosterior, () => sugerirNumLira(L, maquina, 'SI'));
+    const liraCofre     = calcPerfil(refs.perfilLiraCofre, refs.numLiraCofre, () => sugerirNumLira(L, maquina, 'SI'));
+    const perfilInf     = calcPerfil(refs.perfilInferior, refs.numInferior, () => sugerirNumInferior(L));
+
+    const { errores, warnings } = validateInputs(L, brazos);
+
+    brazos.forEach(b => {
+      document.getElementById('cota' + b.n)?.classList.remove('error');
+    });
+
+    let colisionesPlegado = [];
+    let brazosOrdenados = [...brazos].sort((a, b) => a.cota - b.cota);
+
+    for (let i = 1; i < brazosOrdenados.length; i++) {
+      const a = brazosOrdenados[i - 1];
+      const b = brazosOrdenados[i];
+      if (!a.lado || !b.lado) continue;
+
+      const sep = b.cota - a.cota;
+      const aInv = a.lado === 'izq';
+      const bInv = b.lado === 'der';
+      let nec = 0;
+      let tipo = '';
+
+      if (aInv && bInv) {
+        nec = (brazoRep * 2) + holgura;
+        tipo = t3('enfrentados → hueco DOBLE', 'facing → DOUBLE gap', 'opposés → espace DOUBLE', 'gegenüberliegend → DOPPELTE Lücke', 'contrapposti → spazio DOPPIO', 'frente a frente → espaço DUPLO');
+      } else if (aInv || bInv) {
+        nec = brazoRep + holgura;
+        tipo = t3('un brazo en el hueco', 'one arm in gap', 'un bras dans l\'espace', 'ein Arm in der Lücke', 'un braccio nello spazio', 'um braço no espaço');
+      } else {
+        nec = holgura;
+        tipo = t3('divergentes', 'diverging', 'divergents', 'divergierend', 'divergenti', 'divergentes');
+      }
+
+      if (sep < nec) {
+        colisionesPlegado.push(`${labels.errColisionPlegado} P${a.n}–P${b.n} (${tipo}): gap ${sep}mm < ${Math.round(nec)}mm (Brazo Onyx: ${brazoRep}mm).`);
+        
+        const bOrigA = brazos.find(x => x.n === a.n);
+        const bOrigB = brazos.find(x => x.n === b.n);
+        if(bOrigA) bOrigA.conflict = true;
+        if(bOrigB) bOrigB.conflict = true;
+
+        document.getElementById('cota' + a.n)?.classList.add('error');
+        document.getElementById('cota' + b.n)?.classList.add('error');
+      }
+    }
+
+    let overlapError = null;
+    const todosLosSoportes = [
+      ...paredes.map((c, idx) => ({ cota: c, nombre: `${labels.badgePared} SP${idx+1}` })),
+      ...brazos.map(b => {
+        const letra = ladoLetra(b.lado);
+        return { cota: b.cota, nombre: `${b.lado==='izq'?labels.badgeBrazoI:labels.badgeBrazoD} P${b.n}${letra}` };
+      })
+    ];
+
+    for (let i = 0; i < todosLosSoportes.length; i++) {
+      for (let j = i + 1; j < todosLosSoportes.length; j++) {
+        if (Math.abs(todosLosSoportes[i].cota - todosLosSoportes[j].cota) < 60) {
+          overlapError = `${labels.errOverlap} ${todosLosSoportes[i].nombre} (${todosLosSoportes[i].cota}mm) & ${todosLosSoportes[j].nombre} (${todosLosSoportes[j].cota}mm).`;
+          break;
+        }
+      }
+      if (overlapError) break;
+    }
+
+    let alertHtml = '';
+    if (errores.length) alertHtml += `<div class="alert danger">${errores.map(e=>`<div>⚠ ${e}</div>`).join('')}</div>`;
+    if (colisionesPlegado.length) alertHtml += `<div class="alert danger">${colisionesPlegado.map(c=>`<div>${c}</div>`).join('')}</div>`;
+    if (overlapError) alertHtml += `<div class="alert danger"><div>${overlapError}</div></div>`;
+    if (warnings.length && !overlapError && !colisionesPlegado.length) alertHtml += `<div class="alert info">${warnings.map(w=>`<div>ℹ ${w}</div>`).join('')}</div>`;
+    if (soportesInfo) {
+      if (!soportesInfo.valid) {
+        const minTxt = lineaMinima ? `${labels.soportesLineaMinima}<b>${lineaMinima}mm</b>` : '';
+        alertHtml += `<div class="alert danger"><div>${labels.soportesInvalido}${minTxt}</div></div>`;
+      } else {
+        const kitsTxt = Number.isInteger(soportesInfo.kits) ? soportesInfo.kits : soportesInfo.kits.toFixed(1);
+        alertHtml += `<div class="alert info"><div>${labels.tipoLabel}: <b>${tipoConfig}</b> · ${labels.soportesSugeridos}<b>${soportesInfo.individual}</b> (${kitsTxt}${labels.soportesKits})${soportesInfo.lOverMax ? labels.soportesLmax : ''}</div></div>`;
+      }
+    } else if (tipoConfig) {
+      alertHtml += `<div class="alert info"><div>${labels.tipoLabel}: <b>${tipoConfig}</b></div></div>`;
+    }
+    if (excedeLineaMax) {
+      alertHtml += `<div class="alert danger"><div>${labels.errLineaMaximaPre}${numBrazosVal}${labels.errLineaMaximaMid}${lineaMaxima}mm (${L}mm)</div></div>`;
+    }
+
+    refs.alertOut.innerHTML = alertHtml;
+
+    if (L <= 0 || errores.length > 0) {
+      refs.planoOut.innerHTML = `<div style="text-align:center;color:#888;padding:50px;font-style:italic;">${labels.msgPlaceholder}</div>`;
+      return;
+    }
+
+    const marginLeft  = 110;
+    const marginRight = 110;
+    const vbWidth      = 1200;
+    const usableWidth = vbWidth - marginLeft - marginRight;
+    const scale       = usableWidth / L;
+
+    const yBar        = 300; 
+    const altoPared   = 96;
+    const anchoPared  = 46;
+    const altoBrazo   = 64; 
+    const anchoBrazo  = 62;
+
+    const baseCotaY    = yBar + 28; 
+    const labelWidthGap = 64;       
+    const carrilHeight  = 34;       
+
+    let imageElements = '';
+    let bandasPlegado = '';
+
+    const posicionesEnX = [
+      ...paredes.map(c => marginLeft + c * scale),
+      ...brazos.map(b => marginLeft + b.cota * scale)
+    ].sort((a, b) => a - b);
+
+    let minimaDistanciaGlobalX = 9999;
+    for (let i = 1; i < posicionesEnX.length; i++) {
+      const dist = posicionesEnX[i] - posicionesEnX[i-1];
+      if (dist < minimaDistanciaGlobalX) minimaDistanciaGlobalX = dist;
+    }
+
+    let factorEscalaGlobal = 1.0;
+    if (minimaDistanciaGlobalX < 56) {
+      factorEscalaGlobal = Math.max(0.52, minimaDistanciaGlobalX / 56);
+    }
+
+    const listaParedesConEscala = paredes.map((c, idx) => ({
+      cota: c, x: marginLeft + c * scale, id: idx + 1, escala: factorEscalaGlobal
+    }));
+
+    const listaBrazosConEscala = brazos.map(b => ({
+      cota: b.cota, x: marginLeft + b.cota * scale, bObj: b, escala: factorEscalaGlobal
+    }));
+
+    brazos.forEach(b => {
+      const x = marginLeft + b.cota * scale;
+      const armLengthPx = brazoRep * scale; 
+      const dir = b.lado === 'izq' ? 1 : -1;
+      const xEnd = x + dir * armLengthPx;
+      
+      const fillCol = b.conflict ? 'rgba(239, 68, 68, 0.25)' : 'rgba(37, 99, 235, 0.08)';
+      
+      if (b.lado) {
+        bandasPlegado += `
+          <rect x="${Math.min(x, xEnd)}" y="${yBar - 8}" width="${Math.abs(xEnd - x)}" height="16" fill="${fillCol}"/>
+          <path d="M${xEnd} ${yBar} l${dir * -8} -5 l0 10 z" fill="${b.conflict ? '#ef4444' : '#2563eb'}" opacity="0.8"/>
+        `;
+      }
+    });
+
+    const allCotaX = [
+      ...listaParedesConEscala.map(p => ({ x: p.x, label: `${p.cota}`, color: '#2563eb', tipo: `${labels.badgePared} SP${p.id}`, lado: null, esPared: true })),
+      ...listaBrazosConEscala.map(b => {
+        const letra = ladoLetra(b.bObj.lado);
+        return { x: b.x, label: `${b.cota}`, color: b.bObj.lado === 'der' ? '#10b981' : '#ef4444', tipo: `${b.bObj.lado === 'izq' ? labels.badgeBrazoI : labels.badgeBrazoD} P${b.bObj.n}${letra}`, lado: b.bObj.lado, esPared: false };
+      })
+    ].sort((a, b) => a.x - b.x);
+
+    // Cota "barra cuadrada" = medida real sobre la barra desnuda (sin tapas), para el taller.
+    // Soportes de pared/perfiles: siempre -grosor (referencia siempre desde el extremo izquierdo).
+    // Soportes brazo: izq -grosor, der +grosor (confirmado por el usuario con ejemplos reales).
+    const cotaTallerSoporte = (cota, lado) => {
+      if (!grosorTapa) return null;
+      if (lado === 'der') return cota + grosorTapa;
+      return cota - grosorTapa;
+    };
+
+    const placedLabelsByLane = []; 
+    const labelLanes = allCotaX.map((item) => {
+      let targetLane = 0;
+      while (true) {
+        const laneContent = placedLabelsByLane[targetLane] || [];
+        const conflict = laneContent.some(prevX => Math.abs(item.x - prevX) < labelWidthGap);
+        if (!conflict) {
+          if (!placedLabelsByLane[targetLane]) placedLabelsByLane[targetLane] = [];
+          placedLabelsByLane[targetLane].push(item.x);
+          break;
+        }
+        targetLane++; 
+      }
+      return targetLane;
+    });
+
+    const maxLaneUsed = placedLabelsByLane.length ? placedLabelsByLane.length - 1 : 0;
+
+    const hitosIntermedios = [
+      { cota: 0, x: marginLeft },
+      ...allCotaX.map(item => ({ cota: parseInt(item.label), x: item.x })),
+      { cota: L, x: marginLeft + usableWidth }
+    ].sort((a,b) => a.x - b.x);
+
+    const hitosLimpios = [];
+    hitosIntermedios.forEach((h, idx) => {
+      if (idx === 0 || h.cota !== hitosIntermedios[idx-1].cota) hitosLimpios.push(h);
+    });
+
+    const yCotaIntermedia = yBar - 15;
+    for (let i = 0; i < hitosLimpios.length - 1; i++) {
+      const h1 = hitosLimpios[i];
+      const h2 = hitosLimpios[i+1];
+      const distReal = h2.cota - h1.cota;
+      const xMedio = (h1.x + h2.x) / 2;
+      if (distReal > 0) {
+        imageElements += `
+          <line x1="${h1.x + 2}" y1="${yCotaIntermedia}" x2="${h2.x - 2}" y2="${yCotaIntermedia}" stroke="#4b5563" stroke-width="1" marker-start="url(#arrowStart)" marker-end="url(#arrowEnd)"/>
+          <rect x="${xMedio - 22}" y="${yCotaIntermedia - 9}" width="44" height="15" rx="3" fill="#ffffff" stroke="#9ca3af" stroke-width="0.8"/>
+          <text x="${xMedio}" y="${yCotaIntermedia + 2}" text-anchor="middle" font-size="10" font-weight="700" fill="#374151">${distReal}</text>
+        `;
+      }
+    }
+
+    listaParedesConEscala.forEach((sup) => {
+      const x = sup.x;
+      const f = sup.escala;
+      const color = '#2563eb';
+      const yBase = yBar - (altoPared * f) - 24;
+      imageElements += `
+        <line x1="${x}" y1="${yBase - 4}" x2="${x}" y2="${yBar + 28}" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3 3"/>
+        <g transform="translate(${x}, ${yBase + (altoPared * f)}) scale(${f}) translate(-${x}, -${yBase + altoPared})">
+          <rect x="${x - anchoPared/2}" y="${yBase}" width="${anchoPared}" height="${altoPared}" rx="2" fill="url(#metalGrad)" stroke="${color}" stroke-width="2"/>
+          <rect x="${x - 5}" y="${yBase + 10}" width="10" height="16" rx="5" fill="#4b5563" stroke="#9ca3af" stroke-width="1"/>
+          <circle cx="${x}" cy="${yBase + 52}" r="5" fill="#4b5563" stroke="#9ca3af" stroke-width="1"/>
+          <path d="M ${x - anchoPared/2} ${yBase + altoPared - 24} L ${x + anchoPared/2} ${yBase + altoPared - 24} L ${x + anchoPared/2} ${yBase + altoPared - 4} L ${x - anchoPared/2} ${yBase + altoPared - 4} Z" fill="#d1d5db" stroke="${color}" stroke-width="1.5" />
+          <rect x="${x - anchoPared/2 - 3}" y="${yBase + altoPared - 12}" width="${anchoPared + 6}" height="8" rx="1" fill="#9ca3af" stroke="${color}" stroke-width="1"/>
+          <circle cx="${x}" cy="${yBase + 34}" r="8" fill="#ffffff" stroke="${color}" stroke-width="1.2"/>
+          <text x="${x}" y="${yBase + 37}" text-anchor="middle" font-size="10" font-weight="900" fill="${color}">SP${sup.id}</text>
+        </g>
+      `;
+    });
+
+    listaBrazosConEscala.forEach((sup) => {
+      const x = sup.x;
+      const f = sup.escala;
+      const b = sup.bObj;
+      
+      const color = b.lado === 'der' ? '#10b981' : '#ef4444';
+      const bandaColor = b.lado === 'der' ? '#10b981' : '#c0102e'; 
+      const letra = ladoLetra(b.lado);
+      
+      const strokeColor = b.conflict ? '#ef4444' : color;
+      const cuerpoBrazoColor = b.conflict ? 'rgba(239, 68, 68, 0.35)' : 'url(#metalGrad)';
+      const perfilStroke = b.conflict ? '#ef4444' : '#6b7280';
+
+      const yBase = yBar - 132 - (altoBrazo * f);
+      const esDerecho = (b.lado === 'der');
+      
+      const xMordaza = esDerecho ? x - 6 : x - (anchoBrazo - 32) + 6;
+      const wMordaza = anchoBrazo - 26; 
+      const xCabeza  = esDerecho ? x - anchoBrazo/2 : x + anchoBrazo/2 - 26;
+      const wCabeza  = 26;
+      const xEje     = esDerecho ? xCabeza + 10 : xCabeza + wCabeza - 10;
+
+      const yEjeBrazoReal = yBase + (altoBrazo * f) - (6 * f); 
+      const largoBrazoRealEscalado = brazoRep * scale; 
+      
+      const xInicioBrazo = xEje;
+      const xFinBrazo = esDerecho ? xInicioBrazo - largoBrazoRealEscalado : xInicioBrazo + largoBrazoRealEscalado;
+
+      imageElements += `
+        <line x1="${x}" y1="${yBase}" x2="${x}" y2="${yBar + 28}" stroke="#9ca3af" stroke-width="1.2" stroke-dasharray="4 2"/>
+        
+        <g opacity="0.9">
+          <rect x="${esDerecho ? xFinBrazo : xInicioBrazo}" y="${yEjeBrazoReal - (7 * f)}" width="${largoBrazoRealEscalado}" height="${14 * f}" rx="${3 * f}" fill="${cuerpoBrazoColor}" stroke="${perfilStroke}" stroke-width="1.5"/>
+          
+          <circle cx="${esDerecho ? xInicioBrazo - (12 * f) : xInicioBrazo + (12 * f)}" cy="${yEjeBrazoReal}" r="${8 * f}" fill="#e5e7eb" stroke="${perfilStroke}" stroke-width="1"/>
+          
+          <rect x="${esDerecho ? xFinBrazo + (20 * f) : xFinBrazo - (50 * f) < xInicioBrazo ? xInicioBrazo + (30 * f) : xFinBrazo - (50 * f)}" y="${yEjeBrazoReal - (7 * f)}" width="${30 * f}" height="${14 * f}" fill="${b.conflict ? '#ef4444' : bandaColor}"/>
+        </g>
+
+        <g transform="translate(${x}, ${yBase + (altoBrazo * f)}) scale(${f}) translate(-${x}, -${yBase + altoBrazo})">
+          <rect x="${xEje - 4}" y="${yBase - 8}" width="8" height="${altoBrazo + 16}" rx="3" fill="#e5e7eb" stroke="${strokeColor}" stroke-width="1.5"/>
+          <rect x="${xCabeza}" y="${yBase + 6}" width="${wCabeza}" height="${altoBrazo - 12}" rx="12" fill="#ffffff" stroke="${strokeColor}" stroke-width="2"/>
+          <rect x="${xMordaza}" y="${yBase}" width="${wMordaza}" height="${altoBrazo}" rx="10" fill="url(#metalGrad)" stroke="${strokeColor}" stroke-width="2.5"/>
+          <text x="${xMordaza + wMordaza/2}" y="${yBase + altoBrazo/2 + 2}" text-anchor="middle" font-size="11" font-weight="900" fill="${strokeColor}">B</text>
+          <text x="${xMordaza + wMordaza/2}" y="${yBase + altoBrazo/2 + 12}" text-anchor="middle" font-size="9" font-weight="700" fill="${strokeColor}">P${b.n}${letra}</text>
+          <rect x="${x - 18}" y="${yBase - 30}" width="36" height="15" rx="3" fill="#ffffff" stroke="${strokeColor}" stroke-width="1"/>
+          <text x="${x}" y="${yBase - 19}" text-anchor="middle" font-size="10" font-weight="bold" fill="${strokeColor}">P${b.n}${letra}</text>
+        </g>
+      `;
+
+      if (b.conflict) {
+        imageElements += `
+          <g filter="url(#shadow)">
+            <circle cx="${x}" cy="${yBase - 42}" r="11" fill="#ef4444"/>
+            <text x="${x}" y="${yBase - 37}" font-size="14" text-anchor="middle" fill="#ffffff" font-weight="bold">⚠</text>
+          </g>
+        `;
+      }
+    });
+
+    const xMotor = (motor === 'izq') ? marginLeft : marginLeft + usableWidth;
+    imageElements += `
+      <g transform="translate(${xMotor}, ${yBar})">
+        <circle cx="0" cy="0" r="18" fill="url(#motorGrad)" stroke="#374151" stroke-width="3" filter="url(#shadow)" />
+        <text x="0" y="5" text-anchor="middle" font-size="14" font-weight="900" fill="#ffffff" font-family="monospace">M</text>
+      </g>
+    `;
+
+    allCotaX.forEach((item, i) => {
+      const lane       = labelLanes[i]; 
+      const targetY    = baseCotaY + (lane * carrilHeight) + 12;
+
+      imageElements += `
+        <polyline points="${item.x},${yBar + 8} ${item.x},${targetY}" stroke="${item.color}" stroke-width="1.2" fill="none" />
+        <circle cx="${item.x}" cy="${targetY}" r="2.5" fill="${item.color}" />
+        <rect x="${item.x - 28}" y="${targetY - 11}" width="56" height="17" rx="4" fill="#ffffff" stroke="${item.color}" stroke-width="1.5"/>
+        <text x="${item.x}" y="${targetY + 1}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="${item.color}">${item.label}</text>
+      `;
+    });
+
+    const baseHeight = baseCotaY + (maxLaneUsed * carrilHeight) + 45;
+    const perfilRows = [
+      { posiciones: tejadillo.posiciones,     color: '#7c3aed', prefix: 'T',  rowLabel: t3('Tejad.', 'Canopy', 'Auvent', 'Vord.', 'Tett.', 'Telh.') },
+      { posiciones: liraPosterior.posiciones, color: '#0891b2', prefix: 'LP', rowLabel: t3('L.Post.', 'R.Lyre', 'Lyre Ar.', 'Ly.hi.', 'L.Post.', 'L.Post.') },
+      { posiciones: liraCofre.posiciones,     color: '#c026d3', prefix: 'LC', rowLabel: t3('L.Cofre', 'Lyre/Cst', 'Lyre/Cof', 'Ly/Geh', 'L.Cass.', 'L.Cofre') },
+      { posiciones: perfilInf.posiciones,     color: '#b45309', prefix: 'I',  rowLabel: t3('Inf.', 'Low.', 'Inf.', 'Unt.', 'Inf.', 'Inf.') },
+    ].filter(r => r.posiciones.length);
+
+    let rowY = baseHeight;
+    perfilRows.forEach(row => {
+      row.posiciones.forEach((cota, idx) => {
+        const x = marginLeft + cota * scale;
+        imageElements += `
+          <line x1="${x}" y1="${yBar + 8}" x2="${x}" y2="${rowY - 8}" stroke="${row.color}" stroke-width="1" stroke-dasharray="2 2"/>
+          <circle cx="${x}" cy="${rowY}" r="4" fill="#ffffff" stroke="${row.color}" stroke-width="1.5"/>
+          <text x="${x}" y="${rowY + 3}" text-anchor="middle" font-size="8" font-weight="900" fill="${row.color}">${row.prefix}${idx+1}</text>
+        `;
+      });
+      imageElements += `<text x="${marginLeft - 14}" y="${rowY + 3}" text-anchor="end" font-size="9" font-weight="700" fill="${row.color}">${row.rowLabel}</text>`;
+      rowY += 28;
+    });
+
+    const totalHeight = perfilRows.length ? (rowY - 8) : baseHeight;
+
+    let svgHtml = `
+      <div class="plan-header">
+        <div>
+          <span style="font-size:1.15rem; font-weight:800; color:var(--text);">${labels.planoTitulo}</span>
+        </div>
+        <div class="plan-meta">
+          📋 ${labels.metaPedido}: <b>${pedido}</b> &nbsp;&middot;&nbsp; 👤 ${labels.metaCliente}: <b>${cliente}</b><br/>
+          📏 ${labels.metaLinea}: <b>${L} mm</b> &nbsp;&middot;&nbsp; 📐 ${labels.metaSalida}: <b>${S} mm</b> &nbsp;&middot;&nbsp; ⚡ ${labels.metaMotor}: <b>${motor === 'izq' ? labels.motorIzq : labels.motorDer}</b>
+        </div>
+      </div>
+
+      <svg viewBox="0 0 ${vbWidth} ${totalHeight}" width="100%">
+        <defs>
+          <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+            <feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity="0.06"/>
+          </filter>
+          <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f9fafb" />
+            <stop offset="50%" stop-color="#e5e7eb" />
+            <stop offset="100%" stop-color="#d1d5db" />
+          </linearGradient>
+          <linearGradient id="motorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4b5563" />
+            <stop offset="100%" stop-color="#1f2937" />
+          </linearGradient>
+          <marker id="arrowStart" viewBox="0 0 10 10" refX="0" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 10 0 L 0 5 L 10 10 z" fill="#374151" />
+          </marker>
+          <marker id="arrowEnd" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#374151" />
+          </marker>
+        </defs>
+
+        ${bandasPlegado}
+
+        <rect x="${marginLeft}" y="${yBar - 6}" width="${usableWidth}" height="14" rx="2" fill="#374151" filter="url(#shadow)" />
+        <rect x="${marginLeft}" y="${yBar - 3}" width="${usableWidth}" height="3" fill="#4b5563" />
+        
+        <line x1="${marginLeft}" y1="${yBar - 20}" x2="${marginLeft}" y2="${yBar + 20}" stroke="#111827" stroke-width="3.5"/>
+        <line x1="${marginLeft + usableWidth}" y1="${yBar - 20}" x2="${marginLeft + usableWidth}" y2="${yBar + 20}" stroke="#111827" stroke-width="3.5"/>
+        
+        <text x="${marginLeft - 18}" y="${yBar + 5}" text-anchor="end" font-size="14" font-weight="bold" fill="#111827">0</text>
+        <text x="${marginLeft + usableWidth + 18}" y="${yBar + 5}" text-anchor="start" font-size="14" font-weight="bold" fill="#111827">${L}</text>
+        ${imageElements}
+      </svg>
+    `;
+
+    const tallerTd = (valor) => grosorTapa ? `<td class="col-taller">${valor === null ? '—' : `<b>${valor} mm</b>`}</td>` : '';
+
+    let tableRows = `
+      <tr class="taller-only">
+        <td><span class="badge badge-motor">M (${labels.metaMotor})</span></td>
+        <td class="col-cliente"><b>${motor === 'izq' ? '0 mm' : L + ' mm'}</b></td>
+        ${tallerTd(null)}
+        <td>${labels.descMotor}</td>
+      </tr>
+    `;
+
+    allCotaX.forEach(item => {
+      let badgeClass = 'badge-pared';
+      if (item.tipo.includes('Brazo') || item.tipo.includes('Arm')) {
+        badgeClass = item.color === '#10b981' ? 'badge-der' : 'badge-izq';
+      }
+      // La versión cliente solo lista soportes de PARED; el resto va marcado como taller-only.
+      tableRows += `
+        <tr${item.esPared ? '' : ' class="taller-only"'}>
+          <td><span class="badge ${badgeClass}">${item.tipo}</span></td>
+          <td class="col-cliente"><b>${item.label} mm</b></td>
+          ${tallerTd(cotaTallerSoporte(Number(item.label), item.lado))}
+          <td>${labels.descSoporte}</td>
+        </tr>
+      `;
+    });
+
+    [
+      { posiciones: tejadillo.posiciones,     badgeClass: 'badge-lira',           label: labels.badgeLira,           prefix: 'T' },
+      { posiciones: liraPosterior.posiciones, badgeClass: 'badge-lira-posterior', label: labels.badgeLiraPosterior,  prefix: 'LP' },
+      { posiciones: liraCofre.posiciones,     badgeClass: 'badge-lira-cofre',     label: labels.badgeLiraCofre,      prefix: 'LC' },
+      { posiciones: perfilInf.posiciones,     badgeClass: 'badge-inferior',       label: labels.badgeInferior,       prefix: 'I' },
+    ].forEach(grupo => {
+      grupo.posiciones.forEach((cota, idx) => {
+        // Soportes de tejadillo/lira/cofre/perfil inferior: solo en la copia de taller.
+        tableRows += `
+          <tr class="taller-only">
+            <td><span class="badge ${grupo.badgeClass}">${grupo.label} ${grupo.prefix}${idx+1}</span></td>
+            <td class="col-cliente"><b>${cota} mm</b></td>
+            ${tallerTd(cotaTallerSoporte(cota, null))}
+            <td>${labels.descSoporte}</td>
+          </tr>
+        `;
+      });
+    });
+
+    svgHtml += `
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>${labels.thComponente}</th>
+            <th class="col-cliente">${labels.thCota}</th>
+            ${grosorTapa ? `<th class="col-taller">${labels.thCotaTaller}</th>` : ''}
+            <th>${labels.thDesc}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    `;
+
+    if (brazos.length) {
+      const tieneTejadillo = tejadillo.activo;
+      const tipoTerminalTxt = tieneTejadillo ? labels.terminalRegulable : labels.terminalFijo;
+      let terminalRows = '';
+      const brazoCentral = numBrazosVal % 2 === 1 ? Math.ceil(numBrazosVal / 2) : 0;
+      brazos.forEach(b => {
+        const letra = ladoLetra(b.lado);
+        const terminal = calcularTerminalBrazo(b.cota, b.lado, L, tieneTejadillo, {
+          S_mm: S, nbrazos: numBrazosVal, modelo: refs.modelo.value, esCentral: b.n === brazoCentral,
+        });
+        const terminalTaller = grosorTapa ? terminal - grosorTapa : null;
+        const soporteTaller = cotaTallerSoporte(b.cota, b.lado);
+        terminalRows += `
+          <tr>
+            <td>P${b.n}${letra}</td>
+            <td>${b.lado === 'izq' ? labels.brazoIzq : labels.brazoDer}</td>
+            <td class="col-cliente">${b.cota} mm</td>
+            ${grosorTapa ? `<td class="col-taller"><b>${soporteTaller} mm</b></td>` : ''}
+            <td class="col-cliente"><b>${terminal} mm</b></td>
+            ${grosorTapa ? `<td class="col-taller"><b>${terminalTaller} mm</b></td>` : ''}
+          </tr>
+        `;
+      });
+      svgHtml += `
+        <div class="terminal-table taller-only" style="margin-top:16px;">
+          <h4 style="margin:0 0 8px; font-size:0.9rem; color: var(--text-main);">${labels.tablaTerminales} — ${tipoTerminalTxt}</h4>
+          <table class="summary-table">
+            <thead>
+              <tr>
+                <th>${labels.colBrazo}</th>
+                <th>${labels.thDesc}</th>
+                <th class="col-cliente">${labels.colSoporte}</th>
+                ${grosorTapa ? `<th class="col-taller">${labels.colSoporteTaller}</th>` : ''}
+                <th class="col-cliente">${labels.colTerminal}</th>
+                ${grosorTapa ? `<th class="col-taller">${labels.colTerminalTaller}</th>` : ''}
+              </tr>
+            </thead>
+            <tbody>${terminalRows}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    svgHtml += `
+      <div class="plan-notes-container">
+        <label for="txtPlanNotes">${labels.lblObservaciones}</label>
+        <textarea id="txtPlanNotes" placeholder="${labels.phObservaciones}">${savedNotesContent}</textarea>
+      </div>
+    `;
+
+    refs.planoOut.innerHTML = svgHtml;
+
+    const notesTextArea = document.getElementById('txtPlanNotes');
+    if (notesTextArea) {
+      notesTextArea.addEventListener('input', (e) => {
+        savedNotesContent = e.target.value;
+        saveState(); 
+      });
+    }
+  };
+
+  return { init };
+})();
+
+document.addEventListener('DOMContentLoaded', App.init);
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('PWA: Service Worker registrado con éxito', reg))
+        .catch(err => console.error('PWA: Error al registrar el Service Worker', err));
+    });
+  }
+
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installBanner').classList.add('show');
+  });
+
+  document.getElementById('btnInstall').addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    document.getElementById('installBanner').classList.remove('show');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    document.getElementById('installBanner').classList.remove('show');
+  });
+
+  const updateOfflineBanner = () => {
+    document.getElementById('offlineBanner').classList.toggle('show', !navigator.onLine);
+  };
+  window.addEventListener('online', updateOfflineBanner);
+  window.addEventListener('offline', updateOfflineBanner);
+  updateOfflineBanner();
+</script>
+
+</body>
+</html>
