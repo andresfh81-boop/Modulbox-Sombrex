@@ -2048,11 +2048,26 @@ const App = (() => {
     return presupLibsPromise;
   };
 
-  // Prepara la imagen para el OCR: (1) reescala a ~2200 px (lee mejor el texto
-  // pequeño de una captura de móvil) y (2) binariza a blanco/negro con umbral, lo
-  // que elimina la marca de agua "PEDIDO" y las líneas grises finas de la tabla
-  // de LLAZA — si no, tesseract se salta las primeras filas (Nº de pedido).
-  const aCanvasEscalado = (source) => new Promise((res, rej) => {
+  // Umbral automático (Otsu) a partir de un histograma de grises.
+  const otsu = (hist, total) => {
+    let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+    let sumB = 0, wB = 0, maxVar = -1, u = 160;
+    for (let t = 0; t < 256; t++) {
+      wB += hist[t]; if (!wB) continue;
+      const wF = total - wB; if (!wF) break;
+      sumB += t * hist[t];
+      const mB = sumB / wB, mF = (sum - sumB) / wF;
+      const v = wB * wF * (mB - mF) * (mB - mF);
+      if (v > maxVar) { maxVar = v; u = t; }
+    }
+    return u;
+  };
+
+  // Prepara la imagen para el OCR: reescala, recorta (opcional) y binariza a
+  // blanco/negro. La binarización elimina la marca de agua "PEDIDO" y las líneas
+  // grises de la tabla de LLAZA — si no, tesseract se salta las primeras filas
+  // (Nº de pedido). `crop` = [fx, fy, fw, fh] en fracción 0..1 del original.
+  const aCanvasEscalado = (source, crop) => new Promise((res, rej) => {
     const prep = (draw, w, h) => {
       const c = document.createElement('canvas');
       c.width = w; c.height = h;
@@ -2061,29 +2076,38 @@ const App = (() => {
       ctx.fillRect(0, 0, w, h);
       draw(ctx, w, h);
       try {
-        const d = ctx.getImageData(0, 0, w, h);
-        const p = d.data, UMBRAL = 185;
-        for (let i = 0; i < p.length; i += 4) {
-          const v = p[i] * 0.3 + p[i + 1] * 0.59 + p[i + 2] * 0.11;
-          const o = v < UMBRAL ? 0 : 255;
-          p[i] = p[i + 1] = p[i + 2] = o;
+        const d = ctx.getImageData(0, 0, w, h), p = d.data;
+        const gris = new Uint8Array(w * h), hist = new Uint32Array(256);
+        for (let i = 0, j = 0; i < p.length; i += 4, j++) {
+          const v = (p[i] * 0.3 + p[i + 1] * 0.59 + p[i + 2] * 0.11) | 0;
+          gris[j] = v; hist[v]++;
+        }
+        // umbral: Otsu subido un poco, pero al menos 170 (para borrar marca de
+        // agua y bordes grises) y como mucho 205 (no comerse texto tenue).
+        const u = Math.min(205, Math.max(170, otsu(hist, w * h) + 20));
+        for (let i = 0, j = 0; i < p.length; i += 4, j++) {
+          const o = gris[j] < u ? 0 : 255;
+          p[i] = p[i + 1] = p[i + 2] = o; p[i + 3] = 255;
         }
         ctx.putImageData(d, 0, 0);
-      } catch (e) { /* imagen "sucia" (canvas tainted): se usa sin binarizar */ }
+      } catch (e) { /* canvas tainted: se usa sin binarizar */ }
       return c;
     };
-    if (source instanceof HTMLCanvasElement) {
-      return res(prep((ctx, w, h) => ctx.drawImage(source, 0, 0, w, h), source.width, source.height));
-    }
+    const dibujar = (src, natW, natH) => {
+      const fw = crop ? crop[2] : 1, fh = crop ? crop[3] : 1;
+      const sx = crop ? crop[0] * natW : 0, sy = crop ? crop[1] * natH : 0;
+      const sw = fw * natW, sh = fh * natH;
+      const objetivo = crop ? 1800 : 2200;
+      // Sin imageSmoothingQuality='high': el bicúbico emborrona el texto fino y,
+      // tras binarizar, rompe los dígitos.
+      const escala = Math.min(3.5, Math.max(1, objetivo / Math.max(sw, sh)));
+      const w = Math.round(sw * escala), h = Math.round(sh * escala);
+      return prep((ctx) => ctx.drawImage(src, sx, sy, sw, sh, 0, 0, w, h), w, h);
+    };
+    if (source instanceof HTMLCanvasElement) return res(dibujar(source, source.width, source.height));
     const img = new Image();
     img.onload = () => {
-      const maxLado = Math.max(img.naturalWidth, img.naturalHeight) || 1;
-      const escala = Math.min(3, Math.max(1, 2200 / maxLado));
-      const w = Math.round(img.naturalWidth * escala);
-      const h = Math.round(img.naturalHeight * escala);
-      // Sin imageSmoothingQuality='high': el suavizado bicúbico emborrona el texto
-      // fino y, tras binarizar, tesseract no lee la tabla del Nº de pedido.
-      const c = prep((ctx, cw, ch) => ctx.drawImage(img, 0, 0, cw, ch), w, h);
+      const c = dibujar(img, img.naturalWidth, img.naturalHeight);
       if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
       res(c);
     };
@@ -2092,7 +2116,7 @@ const App = (() => {
   });
 
   let ocrWorker = null;
-  const ocrImagen = async (source) => {
+  const ocrImagen = async (source, crop) => {
     if (!ocrWorker) {
       ocrWorker = await window.Tesseract.createWorker('spa', 1, {
         workerPath: PRESUP.worker,
@@ -2107,7 +2131,7 @@ const App = (() => {
         preserve_interword_spaces: '1',
       });
     }
-    const canvas = await aCanvasEscalado(source);
+    const canvas = await aCanvasEscalado(source, crop);
     const { data } = await ocrWorker.recognize(canvas);
     return data.text || '';
   };
@@ -2237,6 +2261,17 @@ const App = (() => {
       const parcial = parsePresupuestoLlaza(texto);
       console.log('[presupuesto] texto OCR:', texto);
       console.log('[presupuesto] detectado:', parcial);
+      // Si no salió el Nº de pedido, 2ª pasada sobre un recorte de la esquina
+      // superior izquierda (la tabla de datos), que se lee mucho mejor aislada.
+      const esImagen = !(file.type === 'application/pdf' || /\.pdf$/i.test(file.name));
+      if (!parcial.pedido && esImagen) {
+        try {
+          const t2 = await ocrImagen(file, [0, 0, 0.66, 0.46]);
+          const p2 = parsePresupuestoLlaza(t2);
+          console.log('[presupuesto] 2a pasada (recorte):', t2, p2);
+          ['pedido', 'cliente'].forEach(k => { if (!parcial[k] && p2[k]) parcial[k] = p2[k]; });
+        } catch (e2) { console.warn('[presupuesto] 2a pasada falló', e2); }
+      }
       aplicarPresupuesto(parcial);
     } catch (e) {
       console.error('[presupuesto]', e);
