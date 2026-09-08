@@ -181,7 +181,6 @@
       body.print-taller .col-taller { display: table-cell !important; }
       body.print-taller .col-cliente { display: none !important; }
       body.print-taller tr.taller-only { display: table-row !important; }
-      body.print-taller .terminal-table.taller-only { display: block !important; }
     }
   </style>
 </head>
@@ -2094,8 +2093,9 @@ const App = (() => {
 
   // Disponibilidad de perfiles por Modelo:
   //  - FullBOX: incorpora los 4 (forzados a Sí, no editables).
+  //  - SemiBOX: Tejadillo forzado a Sí (obligatorio, con sus soportes); Lira Posterior y Lira/Cofre opcionales.
   //  - OPEN: sin Tejadillo ni Lira/Cofre (forzados a No); Lira Posterior opcional.
-  //  - SemiOPEN/SemiBOX: Tejadillo, Lira Posterior y Lira/Cofre opcionales.
+  //  - SemiOPEN: Tejadillo, Lira Posterior y Lira/Cofre opcionales.
   //  - Perfil Inferior: exclusivo de FullBOX (forzado a No en el resto).
   const forceSelect = (sel, value) => {
     sel.disabled = true;
@@ -2108,6 +2108,12 @@ const App = (() => {
       forceSelect(refs.perfilLiraPosterior, 'SI');
       forceSelect(refs.perfilLiraCofre, 'SI');
       forceSelect(refs.perfilInferior, 'SI');
+    } else if (modelo === 'SemiBOX') {
+      // SemiBOX: el perfil tejadillo y sus soportes son siempre obligatorios.
+      forceSelect(refs.perfilTejadillo, 'SI');
+      refs.perfilLiraPosterior.disabled = false;
+      refs.perfilLiraCofre.disabled = false;
+      forceSelect(refs.perfilInferior, 'NO');
     } else if (modelo === 'OPEN') {
       forceSelect(refs.perfilTejadillo, 'NO');
       refs.perfilLiraPosterior.disabled = false;
@@ -2716,7 +2722,7 @@ const App = (() => {
         `;
       });
       svgHtml += `
-        <div class="terminal-table taller-only" style="margin-top:16px;">
+        <div class="terminal-table" style="margin-top:16px;">
           <h4 style="margin:0 0 8px; font-size:0.9rem; color: var(--text-main);">${labels.tablaTerminales} — ${tipoTerminalTxt}</h4>
           <table class="summary-table">
             <thead>
