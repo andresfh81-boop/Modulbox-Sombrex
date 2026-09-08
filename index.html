@@ -1832,11 +1832,10 @@ const App = (() => {
   };
 
   const loadState = () => {
-    const saved = localStorage.getItem('modulbox_onyx_state');
+    // La app se abre siempre en blanco: no se arrastran los datos del pedido
+    // anterior al cerrar y volver a abrir. Solo se conserva el idioma elegido.
+    localStorage.removeItem('modulbox_onyx_state');
     const savedLang = localStorage.getItem('modulbox_onyx_lang');
-    if (saved) {
-      try { applyState(JSON.parse(saved)); } catch(e) {}
-    }
     if (savedLang) {
       currentLang = savedLang;
       switchLanguage(currentLang);
@@ -2124,14 +2123,22 @@ const App = (() => {
     const has = (re) => re.test(U);
     const yn = (v) => v == null ? null : (/\bS[I1]\b|\bYES\b/.test(v) ? 'SI' : /\bNO\b/.test(v) ? 'NO' : null);
 
-    // Nº de pedido: 7-9 dígitos que aparecen justo tras "Num. Pedido" y antes de "Fecha".
-    // (Se acota así para no confundirlo con la ref. de material (10-11), el nº de ítem
-    //  (000010), la fecha, ni los teléfonos "977 990 600" de la cabecera.)
-    let ped = null;
-    const secPed = (U.match(/N\S{0,5}\.?\s*(?:DE\s*)?PEDIDO([\s\S]{0,60}?)(?:\bFECHA\b|F\.\s*FIN|TRANSPORT|OBSERV|SHIP|$)/) || [])[1];
-    if (secPed) ped = (secPed.match(/\b([0-9]{7,9})\b/) || [])[1] || null;
-    if (!ped) ped = grab(/PEDIDO[\s:.\-]{0,4}([0-9]{7,9})\b/);
-    if (ped) out.pedido = ped.replace(/\D/g, '');
+    // Nº de pedido: 7-9 dígitos tras "Num. Pedido". Tolerante a erratas de OCR
+    // (O->0, I/l->1, S->5, B->8) y acotado para no coger la ref. de material (10-11),
+    // el nº de ítem (000010), la fecha ni los teléfonos de la cabecera.
+    const deOCR = (s) => s.replace(/[OoQ]/g, '0').replace(/[IilL!|]/g, '1')
+      .replace(/[Ss]/g, '5').replace(/B/g, '8').replace(/[^0-9]/g, '');
+    const buscaPed = (txt) => {
+      if (!txt) return null;
+      const m = txt.match(/([0-9OoQIilL!|SsB]{7,10})(?![0-9OoQIilL!|SsB])/);
+      if (!m) return null;
+      const n = deOCR(m[1]);
+      return (n.length >= 7 && n.length <= 9) ? n : null;
+    };
+    let ped = buscaPed((U.match(/PEDIDO([\s\S]{0,60}?)(?:\bFECHA\b|F\.?\s*FIN|TRANSPORT|OBSERV|SHIP|$)/) || [])[1]);
+    if (!ped) ped = buscaPed((U.match(/PEDIDO([\s\S]{0,120}?)(?:TRANSPORT|OBSERV|MATERIAL|DESCR|MODULBOX|$)/) || [])[1]);
+    if (!ped) { const m2 = grab(/PEDIDO[\s:.\-]{0,4}([0-9]{7,9})\b/); if (m2) ped = m2; }
+    if (ped) out.pedido = ped;
 
     let cli = grab(/(?:OBSERVACIONES|SU\s*REF)[\s:.\-]{0,4}([A-Z][A-Z.'\/-]*(?: [A-Z][A-Z.'\/-]*){0,2})/);
     if (cli) cli = cli.replace(/\s+(?:UNIT|PRICE|ITEM|MATERIAL|DESCR|QUANTITY)\b.*$/, '').trim();
