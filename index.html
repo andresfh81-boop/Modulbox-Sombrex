@@ -212,6 +212,8 @@
       <span id="installMsg" style="flex:1;">Instala esta app en tu móvil para usarla sin conexión.</span>
       <button id="btnInstall" type="button">Instalar</button>
     </div>
+    <button id="btnUploadPresupuesto" class="secondary" type="button" style="margin-top:0;">📤 Subir presupuesto (foto/PDF)</button>
+    <input id="filePresupuesto" type="file" accept="image/*,application/pdf" hidden>
     <div class="row">
       <div>
         <label id="lblPedido" for="pedido">📋 Nº Pedido</label>
@@ -283,6 +285,8 @@
         </div>
       </div>
     </div>
+
+    <button id="btnClear" class="clear" style="margin-bottom:4px;">🗑️ Limpiar todo</button>
 
     <div class="form-section">
       <h3 id="secSoportes">Colocación de soportes</h3>
@@ -374,8 +378,6 @@
       <button id="btnPDF" class="pdf">📄 PDF</button>
       <button id="btnExport" class="export">⬇ PNG</button>
     </div>
-
-    <button id="btnClear" class="clear">🗑️ Limpiar todo</button>
   </div>
 
   <div class="panel plan">
@@ -1020,6 +1022,11 @@ const App = (() => {
       brazoCota: "Cota en mm",
       btnSugerir: "🧮 Sugerir soportes",
       notifSugerir: "🧮 Soportes sugeridos",
+      btnUploadPresupuesto: "📤 Subir presupuesto (foto/PDF)",
+      btnUploadLeyendo: "⏳ Leyendo presupuesto…",
+      notifPresupuestoOK: "📤 Presupuesto leído: {n} campos",
+      notifPresupuestoVacio: "📤 No se reconoció ningún dato del presupuesto",
+      notifPresupuestoErr: "📤 No se pudo leer el presupuesto",
       errSugerirInvalido: "No se pueden sugerir soportes: la línea es demasiado corta para esta combinación.",
       errSugerirSinDatos: "No hay datos de posición para esta combinación de Salida/Línea.",
       confirmSugerir: "Esto sustituirá el contenido actual de \"Soportes de PARED\" por la sugerencia automática. ¿Continuar?",
@@ -1137,6 +1144,11 @@ const App = (() => {
       brazoCota: "Coordinate in mm",
       btnSugerir: "🧮 Suggest brackets",
       notifSugerir: "🧮 Brackets suggested",
+      btnUploadPresupuesto: "📤 Upload quote (photo/PDF)",
+      btnUploadLeyendo: "⏳ Reading quote…",
+      notifPresupuestoOK: "📤 Quote read: {n} fields",
+      notifPresupuestoVacio: "📤 No data recognised from the quote",
+      notifPresupuestoErr: "📤 Could not read the quote",
       errSugerirInvalido: "Can't suggest brackets: the width is too short for this combination.",
       errSugerirSinDatos: "No position data for this Projection/Width combination.",
       confirmSugerir: "This will replace the current content of \"WALL Brackets\" with the automatic suggestion. Continue?",
@@ -1254,6 +1266,11 @@ const App = (() => {
       brazoCota: "Coordonnée en mm",
       btnSugerir: "🧮 Suggérer les supports",
       notifSugerir: "🧮 Supports suggérés",
+      btnUploadPresupuesto: "📤 Importer un devis (photo/PDF)",
+      btnUploadLeyendo: "⏳ Lecture du devis…",
+      notifPresupuestoOK: "📤 Devis lu : {n} champs",
+      notifPresupuestoVacio: "📤 Aucune donnée reconnue dans le devis",
+      notifPresupuestoErr: "📤 Impossible de lire le devis",
       errSugerirInvalido: "Impossible de suggérer les supports : la largeur est trop courte pour cette combinaison.",
       errSugerirSinDatos: "Pas de données de position pour cette combinaison Projection/Largeur.",
       confirmSugerir: "Cela remplacera le contenu actuel de « Supports MURAUX » par la suggestion automatique. Continuer ?",
@@ -1371,6 +1388,11 @@ const App = (() => {
       brazoCota: "Koordinate in mm",
       btnSugerir: "🧮 Stützen vorschlagen",
       notifSugerir: "🧮 Stützen vorgeschlagen",
+      btnUploadPresupuesto: "📤 Angebot hochladen (Foto/PDF)",
+      btnUploadLeyendo: "⏳ Angebot wird gelesen…",
+      notifPresupuestoOK: "📤 Angebot gelesen: {n} Felder",
+      notifPresupuestoVacio: "📤 Keine Daten aus dem Angebot erkannt",
+      notifPresupuestoErr: "📤 Angebot konnte nicht gelesen werden",
       errSugerirInvalido: "Stützen können nicht vorgeschlagen werden: Die Strecke ist für diese Kombination zu kurz.",
       errSugerirSinDatos: "Keine Positionsdaten für diese Ausgang/Strecke-Kombination.",
       confirmSugerir: "Dies ersetzt den aktuellen Inhalt von „WAND-Stützen\" durch den automatischen Vorschlag. Fortfahren?",
@@ -1488,6 +1510,11 @@ const App = (() => {
       brazoCota: "Coordinata in mm",
       btnSugerir: "🧮 Suggerisci staffe",
       notifSugerir: "🧮 Staffe suggerite",
+      btnUploadPresupuesto: "📤 Carica preventivo (foto/PDF)",
+      btnUploadLeyendo: "⏳ Lettura preventivo…",
+      notifPresupuestoOK: "📤 Preventivo letto: {n} campi",
+      notifPresupuestoVacio: "📤 Nessun dato riconosciuto dal preventivo",
+      notifPresupuestoErr: "📤 Impossibile leggere il preventivo",
       errSugerirInvalido: "Impossibile suggerire le staffe: la lunghezza è troppo corta per questa combinazione.",
       errSugerirSinDatos: "Nessun dato di posizione per questa combinazione Sporgenza/Lunghezza.",
       confirmSugerir: "Questo sostituirà il contenuto attuale di \"Staffe a MURO\" con il suggerimento automatico. Continuare?",
@@ -1605,6 +1632,11 @@ const App = (() => {
       brazoCota: "Coordenada em mm",
       btnSugerir: "🧮 Sugerir suportes",
       notifSugerir: "🧮 Suportes sugeridos",
+      btnUploadPresupuesto: "📤 Carregar orçamento (foto/PDF)",
+      btnUploadLeyendo: "⏳ A ler orçamento…",
+      notifPresupuestoOK: "📤 Orçamento lido: {n} campos",
+      notifPresupuestoVacio: "📤 Nenhum dado reconhecido do orçamento",
+      notifPresupuestoErr: "📤 Não foi possível ler o orçamento",
       errSugerirInvalido: "Não é possível sugerir suportes: a largura é muito curta para esta combinação.",
       errSugerirSinDatos: "Sem dados de posição para esta combinação Projeção/Largura.",
       confirmSugerir: "Isto substituirá o conteúdo atual de \"Suportes de PAREDE\" pela sugestão automática. Continuar?",
@@ -1693,6 +1725,8 @@ const App = (() => {
     brazosContainer: document.getElementById('brazosContainer'),
     alertOut:        document.getElementById('alertOut'),
     planoOut:        document.getElementById('planoOut'),
+    btnUploadPresupuesto: document.getElementById('btnUploadPresupuesto'),
+    filePresupuesto: document.getElementById('filePresupuesto'),
     btnSugerir:      document.getElementById('btnSugerir'),
     btnCalcularBrazos: document.getElementById('btnCalcularBrazos'),
     btnPrint:        document.getElementById('btnPrint'),
@@ -1907,6 +1941,7 @@ const App = (() => {
     document.getElementById('optInferiorNo').textContent = labels.optNo;
     document.getElementById('optInferiorSi').textContent = labels.optSi;
 
+    refs.btnUploadPresupuesto.textContent = labels.btnUploadPresupuesto;
     refs.btnSugerir.textContent = labels.btnSugerir;
     refs.btnCalcularBrazos.textContent = labels.btnCalcularBrazos;
     refs.btnPrint.textContent = labels.btnPrint;
@@ -1979,6 +2014,162 @@ const App = (() => {
     render();
     saveState();
     showNotification(labels.notifSugerir);
+  };
+
+  // ===== Subir presupuesto de LLAZA + autocompletado por OCR =====
+  // Librerías (tesseract.js + pdf.js) servidas desde vendor/ pero NO precargadas en el
+  // service worker: se cargan la primera vez que se usa esta función (hace falta internet
+  // esa primera vez; luego el SW las cachea y va offline).
+  const PRESUP = {
+    tesseract: 'vendor/tesseract/tesseract.min.js',
+    pdfjs: 'vendor/pdfjs/pdf.min.js',
+    pdfWorker: 'vendor/pdfjs/pdf.worker.min.js',
+    worker: 'vendor/tesseract/worker.min.js',
+    core: 'vendor/tesseract/',
+    lang: 'vendor/tesseract/lang',
+  };
+  let presupLibsPromise = null;
+  const loadScriptOnce = (src) => new Promise((res, rej) => {
+    if ([...document.scripts].some(s => s.src && s.src.includes(src))) return res();
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => res();
+    s.onerror = () => rej(new Error('No se pudo cargar ' + src));
+    document.head.appendChild(s);
+  });
+  const cargarPresupLibs = () => {
+    if (!presupLibsPromise) {
+      presupLibsPromise = Promise.all([
+        loadScriptOnce(PRESUP.tesseract),
+        loadScriptOnce(PRESUP.pdfjs),
+      ]).then(() => {
+        if (window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = PRESUP.pdfWorker;
+      });
+    }
+    return presupLibsPromise;
+  };
+
+  let ocrWorker = null;
+  const ocrImagen = async (source) => {
+    if (!ocrWorker) {
+      ocrWorker = await window.Tesseract.createWorker('spa', 1, {
+        workerPath: PRESUP.worker,
+        corePath: PRESUP.core,
+        langPath: PRESUP.lang,
+        gzip: true,
+      });
+    }
+    const { data } = await ocrWorker.recognize(source);
+    return data.text || '';
+  };
+
+  const textoDesdePDF = async (file) => {
+    const buf = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+    const page = await pdf.getPage(1);
+    const tc = await page.getTextContent();
+    const txt = tc.items.map(i => i.str).join(' ').trim();
+    if (txt.replace(/\s/g, '').length > 40) return txt;      // el PDF ya trae capa de texto
+    const viewport = page.getViewport({ scale: 2 });          // si no, rasterizar y OCR
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    return ocrImagen(canvas);
+  };
+
+  const extraerTextoPresupuesto = (file) =>
+    (file.type === 'application/pdf' || /\.pdf$/i.test(file.name))
+      ? textoDesdePDF(file)
+      : ocrImagen(file);
+
+  // --- Parser de la confirmación de pedido de LLAZA ---
+  const normOCR = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\r/g, '').replace(/[·•|]/g, ' ').replace(/[—–]/g, ' ');
+
+  const parsePresupuestoLlaza = (raw) => {
+    const U = normOCR(raw).toUpperCase();
+    const out = {};
+    const grab = (re) => { const m = U.match(re); return m ? m[1].trim() : null; };
+    const has = (re) => re.test(U);
+    const yn = (v) => v == null ? null : (/\bS[I1]\b|\bYES\b/.test(v) ? 'SI' : /\bNO\b/.test(v) ? 'NO' : null);
+
+    const ped = grab(/PEDIDO[\s:.\-]*([0-9]{5,})/) || grab(/PEDIDO[\s\S]{0,15}?([0-9]{6,})/);
+    if (ped) out.pedido = ped.replace(/\D/g, '');
+
+    const cli = grab(/(?:OBSERVACIONES|SU\s*REF)[\s:.\-]*([A-Z][A-Z .'\/-]{2,38}[A-Z])/);
+    if (cli) out.cliente = cli.replace(/\s{2,}/g, ' ').trim();
+
+    let cofre = grab(/TIPO\s*DE\s*COFRE[:\s]*([A-Z ]{3,20}?)(?:\s{2,}|$)/);
+    if (!cofre) cofre = has(/FULL\s*BOX/) ? 'FULL BOX' : has(/SEMI\s*BOX/) ? 'SEMI BOX'
+                     : has(/SEMI\s*OPEN/) ? 'SEMI OPEN' : has(/\bOPEN\b/) ? 'OPEN' : null;
+    if (cofre) {
+      const c = cofre.replace(/\s/g, '');
+      const m = /FULLBOX/.test(c) ? 'FullBOX' : /SEMIBOX/.test(c) ? 'SemiBOX'
+              : /SEMIOPEN/.test(c) ? 'SemiOPEN' : /^OPEN/.test(c) ? 'OPEN' : null;
+      if (m) out.modelo = m;
+    }
+
+    const lin = grab(/LINEA\s*TOTAL[:\s]*([0-9]{3,5})\s*MM/) || grab(/LINEA[^0-9]{0,10}([0-9]{3,5})\s*MM/);
+    if (lin) out.linea = lin;
+
+    const salM = U.match(/(?:MEDIDA\s*DE\s*BRAZOS|MODELO\s*Y\s*MEDIDA)[\s\S]{0,60}?(\d{1,2})\s*[.,]\s*(\d{1,2})\s*M(?![A-LN-Z])/)
+              || U.match(/\bBRAZOS[\s\S]{0,40}?(\d{1,2})\s*[.,]\s*(\d{1,2})\s*M(?![A-LN-Z])/);
+    if (salM) {
+      const mm = Math.round(parseFloat(salM[1] + '.' + salM[2]) * 1000);
+      if (mm >= 1000 && mm <= 5000) {
+        const opts = [...refs.salida.options].map(o => +o.value).filter(Boolean);
+        if (opts.length) out.salida = String(opts.reduce((a, b) => Math.abs(b - mm) < Math.abs(a - mm) ? b : a));
+      }
+    }
+
+    const nb = grab(/N[UO]?MERO\s*DE\s*BRAZOS[:\s]*([234])/) || grab(/\b([234])\s*UN\b/);
+    if (nb) out.numBrazos = nb;
+
+    let lado = grab(/LADO\s*ACCIONAMIENTO[:\s]*([A-Z]+)/);
+    if (!lado) lado = has(/\bIZQUIERDA\b/) ? 'IZQUIERDA' : has(/\bDERECHA\b/) ? 'DERECHA' : null;
+    if (lado) { if (/IZQ/.test(lado)) out.ladoMotor = 'izq'; else if (/DER/.test(lado)) out.ladoMotor = 'der'; }
+
+    const bc = yn(grab(/BRAZOS\s*CRUZADOS[:\s]*([A-Z0-9]+)/));
+    if (bc) out.brazosCruzados = bc;
+
+    const acc = grab(/ACCIONAMIENTO[:\s]*([A-Z]+)/);
+    if (acc) { if (/MANUAL/.test(acc)) out.maquina = 'SI'; else if (/MOTOR/.test(acc)) out.maquina = 'NO'; }
+
+    const lira = yn(grab(/CON\s*PERFIL\s*LIRA[:\s]*([A-Z0-9]+)/));
+    if (lira) out.perfilLiraCofre = lira;
+    const post = yn(grab(/(?:CON\s*)?PERFIL\s*POSTERIOR[:\s]*([A-Z0-9]+)/));
+    if (post) out.perfilLiraPosterior = post;
+    if (has(/PERFIL\s*SELLADOR\s*TEJADILLO[:\s]*[A-Z]/)) out.perfilTejadillo = 'SI';
+
+    return out;
+  };
+
+  const aplicarPresupuesto = (parcial) => {
+    const n = Object.keys(parcial).length;
+    if (!n) { showNotification(i18n[currentLang].notifPresupuestoVacio); return; }
+    applyState(Object.assign(getState(), parcial));
+    render();
+    saveState();
+    showNotification(i18n[currentLang].notifPresupuestoOK.replace('{n}', n));
+  };
+
+  const procesarPresupuesto = async (file) => {
+    if (!file) return;
+    const btn = refs.btnUploadPresupuesto;
+    btn.disabled = true;
+    btn.textContent = i18n[currentLang].btnUploadLeyendo;
+    try {
+      await cargarPresupLibs();
+      const texto = await extraerTextoPresupuesto(file);
+      aplicarPresupuesto(parsePresupuestoLlaza(texto));
+    } catch (e) {
+      console.error('[presupuesto]', e);
+      showNotification(i18n[currentLang].notifPresupuestoErr);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = i18n[currentLang].btnUploadPresupuesto;
+    }
   };
 
   const calcularPosicionBrazos = () => {
@@ -2149,6 +2340,12 @@ const App = (() => {
     refs.btnLangIT.addEventListener('click', () => switchLanguage('it'));
     refs.btnLangPT.addEventListener('click', () => switchLanguage('pt'));
 
+    refs.btnUploadPresupuesto.addEventListener('click', () => refs.filePresupuesto.click());
+    refs.filePresupuesto.addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = '';
+      procesarPresupuesto(f);
+    });
     refs.btnSugerir.addEventListener('click', sugerirSoportes);
     refs.btnCalcularBrazos.addEventListener('click', calcularPosicionBrazos);
     refs.btnPrint.addEventListener('click', () => window.print());
