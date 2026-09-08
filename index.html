@@ -214,6 +214,10 @@
     </div>
     <button id="btnUploadPresupuesto" class="secondary" type="button" style="margin-top:0;">📤 Subir presupuesto (foto/PDF)</button>
     <input id="filePresupuesto" type="file" accept="image/*,application/pdf" hidden>
+    <details id="ocrDebugBox" hidden style="margin-top:6px;">
+      <summary id="ocrDebugSummary" style="cursor:pointer;font-size:0.8rem;color:var(--text-muted);">🔍 Ver texto leído (OCR)</summary>
+      <textarea id="ocrDebugText" readonly rows="8" style="width:100%;margin-top:4px;font-family:monospace;font-size:0.7rem;"></textarea>
+    </details>
     <div class="row">
       <div>
         <label id="lblPedido" for="pedido">📋 Nº Pedido</label>
@@ -1023,6 +1027,7 @@ const App = (() => {
       btnSugerir: "🧮 Sugerir soportes",
       notifSugerir: "🧮 Soportes sugeridos",
       btnUploadPresupuesto: "📤 Subir presupuesto (foto/PDF)",
+      ocrDebugVer: "🔍 Ver texto leído (OCR)",
       btnUploadLeyendo: "⏳ Leyendo presupuesto…",
       notifPresupuestoOK: "📤 Presupuesto leído: {n} campos",
       notifPresupuestoVacio: "📤 No se reconoció ningún dato del presupuesto",
@@ -1145,6 +1150,7 @@ const App = (() => {
       btnSugerir: "🧮 Suggest brackets",
       notifSugerir: "🧮 Brackets suggested",
       btnUploadPresupuesto: "📤 Upload quote (photo/PDF)",
+      ocrDebugVer: "🔍 View scanned text (OCR)",
       btnUploadLeyendo: "⏳ Reading quote…",
       notifPresupuestoOK: "📤 Quote read: {n} fields",
       notifPresupuestoVacio: "📤 No data recognised from the quote",
@@ -1267,6 +1273,7 @@ const App = (() => {
       btnSugerir: "🧮 Suggérer les supports",
       notifSugerir: "🧮 Supports suggérés",
       btnUploadPresupuesto: "📤 Importer un devis (photo/PDF)",
+      ocrDebugVer: "🔍 Voir le texte lu (OCR)",
       btnUploadLeyendo: "⏳ Lecture du devis…",
       notifPresupuestoOK: "📤 Devis lu : {n} champs",
       notifPresupuestoVacio: "📤 Aucune donnée reconnue dans le devis",
@@ -1389,6 +1396,7 @@ const App = (() => {
       btnSugerir: "🧮 Stützen vorschlagen",
       notifSugerir: "🧮 Stützen vorgeschlagen",
       btnUploadPresupuesto: "📤 Angebot hochladen (Foto/PDF)",
+      ocrDebugVer: "🔍 Gelesenen Text ansehen (OCR)",
       btnUploadLeyendo: "⏳ Angebot wird gelesen…",
       notifPresupuestoOK: "📤 Angebot gelesen: {n} Felder",
       notifPresupuestoVacio: "📤 Keine Daten aus dem Angebot erkannt",
@@ -1511,6 +1519,7 @@ const App = (() => {
       btnSugerir: "🧮 Suggerisci staffe",
       notifSugerir: "🧮 Staffe suggerite",
       btnUploadPresupuesto: "📤 Carica preventivo (foto/PDF)",
+      ocrDebugVer: "🔍 Vedi testo letto (OCR)",
       btnUploadLeyendo: "⏳ Lettura preventivo…",
       notifPresupuestoOK: "📤 Preventivo letto: {n} campi",
       notifPresupuestoVacio: "📤 Nessun dato riconosciuto dal preventivo",
@@ -1633,6 +1642,7 @@ const App = (() => {
       btnSugerir: "🧮 Sugerir suportes",
       notifSugerir: "🧮 Suportes sugeridos",
       btnUploadPresupuesto: "📤 Carregar orçamento (foto/PDF)",
+      ocrDebugVer: "🔍 Ver texto lido (OCR)",
       btnUploadLeyendo: "⏳ A ler orçamento…",
       notifPresupuestoOK: "📤 Orçamento lido: {n} campos",
       notifPresupuestoVacio: "📤 Nenhum dado reconhecido do orçamento",
@@ -1727,6 +1737,8 @@ const App = (() => {
     planoOut:        document.getElementById('planoOut'),
     btnUploadPresupuesto: document.getElementById('btnUploadPresupuesto'),
     filePresupuesto: document.getElementById('filePresupuesto'),
+    ocrDebugBox: document.getElementById('ocrDebugBox'),
+    ocrDebugText: document.getElementById('ocrDebugText'),
     btnSugerir:      document.getElementById('btnSugerir'),
     btnCalcularBrazos: document.getElementById('btnCalcularBrazos'),
     btnPrint:        document.getElementById('btnPrint'),
@@ -1941,6 +1953,7 @@ const App = (() => {
     document.getElementById('optInferiorSi').textContent = labels.optSi;
 
     refs.btnUploadPresupuesto.textContent = labels.btnUploadPresupuesto;
+    document.getElementById('ocrDebugSummary').textContent = labels.ocrDebugVer;
     refs.btnSugerir.textContent = labels.btnSugerir;
     refs.btnCalcularBrazos.textContent = labels.btnCalcularBrazos;
     refs.btnPrint.textContent = labels.btnPrint;
@@ -2261,6 +2274,8 @@ const App = (() => {
       const parcial = parsePresupuestoLlaza(texto);
       console.log('[presupuesto] texto OCR:', texto);
       console.log('[presupuesto] detectado:', parcial);
+      refs.ocrDebugText.value = texto;
+      refs.ocrDebugBox.hidden = false;
       // Si no salió el Nº de pedido, 2ª pasada sobre un recorte de la esquina
       // superior izquierda (la tabla de datos), que se lee mucho mejor aislada.
       const esImagen = !(file.type === 'application/pdf' || /\.pdf$/i.test(file.name));
@@ -2269,6 +2284,7 @@ const App = (() => {
           const t2 = await ocrImagen(file, [0, 0, 0.66, 0.46]);
           const p2 = parsePresupuestoLlaza(t2);
           console.log('[presupuesto] 2a pasada (recorte):', t2, p2);
+          refs.ocrDebugText.value = texto + '\n\n----- 2a pasada (recorte) -----\n' + t2;
           ['pedido', 'cliente'].forEach(k => { if (!parcial[k] && p2[k]) parcial[k] = p2[k]; });
         } catch (e2) { console.warn('[presupuesto] 2a pasada falló', e2); }
       }
