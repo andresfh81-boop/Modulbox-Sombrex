@@ -2049,6 +2049,29 @@ const App = (() => {
     return presupLibsPromise;
   };
 
+  // Reescala la imagen para que el lado mayor ~= 2200 px: el OCR lee mucho mejor
+  // el texto pequeño de una captura de móvil.
+  const aCanvasEscalado = (source) => new Promise((res, rej) => {
+    if (source instanceof HTMLCanvasElement) return res(source);
+    const img = new Image();
+    img.onload = () => {
+      const maxLado = Math.max(img.naturalWidth, img.naturalHeight) || 1;
+      const escala = Math.min(3, Math.max(1, 2200 / maxLado));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * escala);
+      c.height = Math.round(img.naturalHeight * escala);
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+      res(c);
+    };
+    img.onerror = () => rej(new Error('No se pudo abrir la imagen'));
+    img.src = URL.createObjectURL(source);
+  });
+
   let ocrWorker = null;
   const ocrImagen = async (source) => {
     if (!ocrWorker) {
@@ -2058,8 +2081,15 @@ const App = (() => {
         langPath: PRESUP.lang,
         gzip: true,
       });
+      // PSM 3 (auto): sin esto tesseract.js usa "bloque unico" y se salta la tabla
+      // superior del pedido de LLAZA.
+      await ocrWorker.setParameters({
+        tessedit_pageseg_mode: '3',
+        preserve_interword_spaces: '1',
+      });
     }
-    const { data } = await ocrWorker.recognize(source);
+    const canvas = await aCanvasEscalado(source);
+    const { data } = await ocrWorker.recognize(canvas);
     return data.text || '';
   };
 
@@ -2094,19 +2124,18 @@ const App = (() => {
     const has = (re) => re.test(U);
     const yn = (v) => v == null ? null : (/\bS[I1]\b|\bYES\b/.test(v) ? 'SI' : /\bNO\b/.test(v) ? 'NO' : null);
 
-    // Nº de pedido: LLAZA usa 7-9 dígitos (la ref. de material tiene 10-11 y queda excluida
-    // por \b\d{7,9}\b; "Item 000010" son 6 dígitos y también queda fuera).
-    let ped = grab(/N\S{0,4}\.?\s*(?:DE\s*)?PEDIDO[\s\S]{0,50}?\b([0-9]{7,9})\b/)
-           || grab(/PEDIDO[\s\S]{0,30}?\b([0-9]{7,9})\b/);
-    if (!ped) {
-      const head = U.split(/MATERIAL|DESCR|SU\s*REF|MODULBOX/)[0];
-      const m = head.match(/\b([0-9]{7,9})\b/) || head.match(/\b([0-9][0-9 ]{5,9}[0-9])\b/);
-      if (m) ped = m[1];
-    }
+    // Nº de pedido: 7-9 dígitos que aparecen justo tras "Num. Pedido" y antes de "Fecha".
+    // (Se acota así para no confundirlo con la ref. de material (10-11), el nº de ítem
+    //  (000010), la fecha, ni los teléfonos "977 990 600" de la cabecera.)
+    let ped = null;
+    const secPed = (U.match(/N\S{0,5}\.?\s*(?:DE\s*)?PEDIDO([\s\S]{0,60}?)(?:\bFECHA\b|F\.\s*FIN|TRANSPORT|OBSERV|SHIP|$)/) || [])[1];
+    if (secPed) ped = (secPed.match(/\b([0-9]{7,9})\b/) || [])[1] || null;
+    if (!ped) ped = grab(/PEDIDO[\s:.\-]{0,4}([0-9]{7,9})\b/);
     if (ped) out.pedido = ped.replace(/\D/g, '');
 
-    const cli = grab(/(?:OBSERVACIONES|SU\s*REF)[\s:.\-]*([A-Z][A-Z .'\/-]{2,38}[A-Z])/);
-    if (cli) out.cliente = cli.replace(/\s{2,}/g, ' ').trim();
+    let cli = grab(/(?:OBSERVACIONES|SU\s*REF)[\s:.\-]{0,4}([A-Z][A-Z.'\/-]*(?: [A-Z][A-Z.'\/-]*){0,2})/);
+    if (cli) cli = cli.replace(/\s+(?:UNIT|PRICE|ITEM|MATERIAL|DESCR|QUANTITY)\b.*$/, '').trim();
+    if (cli && cli.length >= 3) out.cliente = cli.replace(/\s{2,}/g, ' ');
 
     let cofre = grab(/TIPO\s*DE\s*COFRE[:\s]*([A-Z ]{3,20}?)(?:\s{2,}|$)/);
     if (!cofre) cofre = has(/FULL\s*BOX/) ? 'FULL BOX' : has(/SEMI\s*BOX/) ? 'SEMI BOX'
