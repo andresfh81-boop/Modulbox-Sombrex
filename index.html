@@ -1032,6 +1032,7 @@ const App = (() => {
       notifPresupuestoOK: "📤 Presupuesto leído: {n} campos",
       notifPresupuestoVacio: "📤 No se reconoció ningún dato del presupuesto",
       notifPresupuestoErr: "📤 No se pudo leer el presupuesto",
+      notifPedidoManual: "📤 Leído. Escribe el Nº de pedido a mano (no se pudo leer)",
       errSugerirInvalido: "No se pueden sugerir soportes: la línea es demasiado corta para esta combinación.",
       errSugerirSinDatos: "No hay datos de posición para esta combinación de Salida/Línea.",
       confirmSugerir: "Esto sustituirá el contenido actual de \"Soportes de PARED\" por la sugerencia automática. ¿Continuar?",
@@ -1155,6 +1156,7 @@ const App = (() => {
       notifPresupuestoOK: "📤 Quote read: {n} fields",
       notifPresupuestoVacio: "📤 No data recognised from the quote",
       notifPresupuestoErr: "📤 Could not read the quote",
+      notifPedidoManual: "📤 Read. Type the order no. manually (couldn't read it)",
       errSugerirInvalido: "Can't suggest brackets: the width is too short for this combination.",
       errSugerirSinDatos: "No position data for this Projection/Width combination.",
       confirmSugerir: "This will replace the current content of \"WALL Brackets\" with the automatic suggestion. Continue?",
@@ -1278,6 +1280,7 @@ const App = (() => {
       notifPresupuestoOK: "📤 Devis lu : {n} champs",
       notifPresupuestoVacio: "📤 Aucune donnée reconnue dans le devis",
       notifPresupuestoErr: "📤 Impossible de lire le devis",
+      notifPedidoManual: "📤 Lu. Saisir le nº de commande à la main (illisible)",
       errSugerirInvalido: "Impossible de suggérer les supports : la largeur est trop courte pour cette combinaison.",
       errSugerirSinDatos: "Pas de données de position pour cette combinaison Projection/Largeur.",
       confirmSugerir: "Cela remplacera le contenu actuel de « Supports MURAUX » par la suggestion automatique. Continuer ?",
@@ -1401,6 +1404,7 @@ const App = (() => {
       notifPresupuestoOK: "📤 Angebot gelesen: {n} Felder",
       notifPresupuestoVacio: "📤 Keine Daten aus dem Angebot erkannt",
       notifPresupuestoErr: "📤 Angebot konnte nicht gelesen werden",
+      notifPedidoManual: "📤 Gelesen. Bestellnr. von Hand eingeben (nicht lesbar)",
       errSugerirInvalido: "Stützen können nicht vorgeschlagen werden: Die Strecke ist für diese Kombination zu kurz.",
       errSugerirSinDatos: "Keine Positionsdaten für diese Ausgang/Strecke-Kombination.",
       confirmSugerir: "Dies ersetzt den aktuellen Inhalt von „WAND-Stützen\" durch den automatischen Vorschlag. Fortfahren?",
@@ -1524,6 +1528,7 @@ const App = (() => {
       notifPresupuestoOK: "📤 Preventivo letto: {n} campi",
       notifPresupuestoVacio: "📤 Nessun dato riconosciuto dal preventivo",
       notifPresupuestoErr: "📤 Impossibile leggere il preventivo",
+      notifPedidoManual: "📤 Letto. Scrivi il nº ordine a mano (non leggibile)",
       errSugerirInvalido: "Impossibile suggerire le staffe: la lunghezza è troppo corta per questa combinazione.",
       errSugerirSinDatos: "Nessun dato di posizione per questa combinazione Sporgenza/Lunghezza.",
       confirmSugerir: "Questo sostituirà il contenuto attuale di \"Staffe a MURO\" con il suggerimento automatico. Continuare?",
@@ -1647,6 +1652,7 @@ const App = (() => {
       notifPresupuestoOK: "📤 Orçamento lido: {n} campos",
       notifPresupuestoVacio: "📤 Nenhum dado reconhecido do orçamento",
       notifPresupuestoErr: "📤 Não foi possível ler o orçamento",
+      notifPedidoManual: "📤 Lido. Escreve o nº de encomenda à mão (ilegível)",
       errSugerirInvalido: "Não é possível sugerir suportes: a largura é muito curta para esta combinação.",
       errSugerirSinDatos: "Sem dados de posição para esta combinação Projeção/Largura.",
       confirmSugerir: "Isto substituirá o conteúdo atual de \"Suportes de PAREDE\" pela sugestão automática. Continuar?",
@@ -2261,7 +2267,9 @@ const App = (() => {
     applyState(Object.assign(getState(), parcial));
     render();
     saveState();
-    showNotification(i18n[currentLang].notifPresupuestoOK.replace('{n}', n));
+    showNotification(parcial.pedido
+      ? i18n[currentLang].notifPresupuestoOK.replace('{n}', n)
+      : i18n[currentLang].notifPedidoManual);
   };
 
   const procesarPresupuesto = async (file) => {
@@ -2277,19 +2285,22 @@ const App = (() => {
       console.log('[presupuesto] detectado:', parcial);
       refs.ocrDebugText.value = texto;
       refs.ocrDebugBox.hidden = false;
-      // Si no salió el Nº de pedido, 2ª pasada sobre un recorte de la esquina
-      // superior izquierda (la tabla de datos), que se lee mucho mejor aislada.
+      // La tabla del Nº de pedido (arriba a la izq., con recuadros) se lee mal en la
+      // pasada completa. Si no salió, se reintenta OCR sobre 2 recortes de esa zona.
       const esImagen = !(file.type === 'application/pdf' || /\.pdf$/i.test(file.name));
       if (!parcial.pedido && esImagen) {
-        try {
-          // Recorte a la mitad IZQUIERDA (deja fuera el bloque "Ship-To-Party" de la
-          // derecha, que si no acapara el OCR y hace que se pierda la tabla del pedido).
-          const t2 = await ocrImagen(file, [0, 0.05, 0.52, 0.42]);
-          const p2 = parsePresupuestoLlaza(t2);
-          console.log('[presupuesto] 2a pasada (recorte):', t2, p2);
-          refs.ocrDebugText.value = texto + '\n\n----- 2a pasada (recorte) -----\n' + t2;
-          ['pedido', 'cliente'].forEach(k => { if (!parcial[k] && p2[k]) parcial[k] = p2[k]; });
-        } catch (e2) { console.warn('[presupuesto] 2a pasada falló', e2); }
+        let dbg = texto;
+        const recortes = [[0, 0.03, 0.48, 0.42], [0, 0, 0.60, 0.30]];
+        for (let i = 0; i < recortes.length && !parcial.pedido; i++) {
+          try {
+            const t2 = await ocrImagen(file, recortes[i]);
+            const p2 = parsePresupuestoLlaza(t2);
+            console.log('[presupuesto] recorte ' + (i + 1) + ':', recortes[i], p2, t2);
+            dbg += '\n\n----- recorte ' + (i + 1) + ' -----\n' + t2;
+            ['pedido', 'cliente'].forEach(k => { if (!parcial[k] && p2[k]) parcial[k] = p2[k]; });
+          } catch (e2) { console.warn('[presupuesto] recorte falló', e2); }
+        }
+        refs.ocrDebugText.value = dbg;
       }
       aplicarPresupuesto(parcial);
     } catch (e) {
