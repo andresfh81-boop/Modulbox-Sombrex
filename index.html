@@ -2048,22 +2048,42 @@ const App = (() => {
     return presupLibsPromise;
   };
 
-  // Reescala la imagen para que el lado mayor ~= 2200 px: el OCR lee mucho mejor
-  // el texto pequeño de una captura de móvil.
+  // Prepara la imagen para el OCR: (1) reescala a ~2200 px (lee mejor el texto
+  // pequeño de una captura de móvil) y (2) binariza a blanco/negro con umbral, lo
+  // que elimina la marca de agua "PEDIDO" y las líneas grises finas de la tabla
+  // de LLAZA — si no, tesseract se salta las primeras filas (Nº de pedido).
   const aCanvasEscalado = (source) => new Promise((res, rej) => {
-    if (source instanceof HTMLCanvasElement) return res(source);
+    const prep = (draw, w, h) => {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
+      draw(ctx, w, h);
+      try {
+        const d = ctx.getImageData(0, 0, w, h);
+        const p = d.data, UMBRAL = 185;
+        for (let i = 0; i < p.length; i += 4) {
+          const v = p[i] * 0.3 + p[i + 1] * 0.59 + p[i + 2] * 0.11;
+          const o = v < UMBRAL ? 0 : 255;
+          p[i] = p[i + 1] = p[i + 2] = o;
+        }
+        ctx.putImageData(d, 0, 0);
+      } catch (e) { /* imagen "sucia" (canvas tainted): se usa sin binarizar */ }
+      return c;
+    };
+    if (source instanceof HTMLCanvasElement) {
+      return res(prep((ctx, w, h) => ctx.drawImage(source, 0, 0, w, h), source.width, source.height));
+    }
     const img = new Image();
     img.onload = () => {
       const maxLado = Math.max(img.naturalWidth, img.naturalHeight) || 1;
       const escala = Math.min(3, Math.max(1, 2200 / maxLado));
-      const c = document.createElement('canvas');
-      c.width = Math.round(img.naturalWidth * escala);
-      c.height = Math.round(img.naturalHeight * escala);
-      const ctx = c.getContext('2d');
-      ctx.imageSmoothingQuality = 'high';
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, c.width, c.height);
-      ctx.drawImage(img, 0, 0, c.width, c.height);
+      const w = Math.round(img.naturalWidth * escala);
+      const h = Math.round(img.naturalHeight * escala);
+      // Sin imageSmoothingQuality='high': el suavizado bicúbico emborrona el texto
+      // fino y, tras binarizar, tesseract no lee la tabla del Nº de pedido.
+      const c = prep((ctx, cw, ch) => ctx.drawImage(img, 0, 0, cw, ch), w, h);
       if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
       res(c);
     };
@@ -2140,9 +2160,17 @@ const App = (() => {
     if (!ped) { const m2 = grab(/PEDIDO[\s:.\-]{0,4}([0-9]{7,9})\b/); if (m2) ped = m2; }
     if (ped) out.pedido = ped;
 
-    let cli = grab(/(?:OBSERVACIONES|SU\s*REF)[\s:.\-]{0,4}([A-Z][A-Z.'\/-]*(?: [A-Z][A-Z.'\/-]*){0,2})/);
-    if (cli) cli = cli.replace(/\s+(?:UNIT|PRICE|ITEM|MATERIAL|DESCR|QUANTITY)\b.*$/, '').trim();
-    if (cli && cli.length >= 3) out.cliente = cli.replace(/\s{2,}/g, ' ');
+    // Cliente: "Su ref:" (en el cuerpo del artículo, se lee siempre) y si no,
+    // "Observaciones". Se descartan cabeceras que el OCR pueda colar detrás.
+    const JUNK = /ACCESORIO|PARA\s+TODO|AUTOMATIZ|PERSIANA|ESTUDIOS|PROYECTOS|SHIP|PARTY|CONDICION|TRANSPORT|FABRICAC|PEDIDO|UNIT|PRICE|MATERIAL|DESCR|QUANTITY|MODULBOX|RECACRIL/;
+    const limpiaCli = (v) => {
+      if (!v) return null;
+      v = v.replace(/\s+(?:UNIT|PRICE|ITEM|MATERIAL|DESCR|QUANTITY|MODULBOX)\b[\s\S]*$/, '').replace(/\s{2,}/g, ' ').trim();
+      return (v.length >= 3 && v.length <= 40 && !JUNK.test(v)) ? v : null;
+    };
+    let cli = limpiaCli(grab(/SU\s*REF[\s:.\-]{0,4}([A-Z][A-Z0-9.'\/-]*(?: [A-Z0-9][A-Z0-9.'\/-]*){0,3})/));
+    if (!cli) cli = limpiaCli(grab(/OBSERVACIONES[\s:.\-]{0,4}([A-Z][A-Z.'\/-]*(?: [A-Z][A-Z.'\/-]*){0,3})/));
+    if (cli) out.cliente = cli;
 
     let cofre = grab(/TIPO\s*DE\s*COFRE[:\s]*([A-Z ]{3,20}?)(?:\s{2,}|$)/);
     if (!cofre) cofre = has(/FULL\s*BOX/) ? 'FULL BOX' : has(/SEMI\s*BOX/) ? 'SEMI BOX'
