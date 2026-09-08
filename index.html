@@ -2195,6 +2195,13 @@ const App = (() => {
     let ped = buscaPed((U.match(/PEDIDO([\s\S]{0,60}?)(?:\bFECHA\b|F\.?\s*FIN|TRANSPORT|OBSERV|SHIP|$)/) || [])[1]);
     if (!ped) ped = buscaPed((U.match(/PEDIDO([\s\S]{0,120}?)(?:TRANSPORT|OBSERV|MATERIAL|DESCR|MODULBOX|$)/) || [])[1]);
     if (!ped) { const m2 = grab(/PEDIDO[\s:.\-]{0,4}([0-9]{7,9})\b/); if (m2) ped = m2; }
+    // Sin la palabra "Pedido" cerca (p. ej. cuando el OCR solo lee la columna de
+    // valores): nº de 7-9 dígitos seguido, en 1-2 líneas, de una fecha dd.mm.aaaa
+    // (el Nº de pedido va justo encima de la Fecha de pedido en la tabla).
+    if (!ped) {
+      const m3 = U.match(/(?:^|[^0-9])([0-9]{7,9})(?![0-9])[^0-9]{0,18}[0-3]?[0-9][.\/\-][0-1]?[0-9][.\/\-](?:20)?[0-9]{2}/);
+      if (m3) ped = m3[1];
+    }
     if (ped) out.pedido = ped;
 
     // Cliente: "Su ref:" (en el cuerpo del artículo, se lee siempre) y si no,
