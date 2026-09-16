@@ -922,8 +922,21 @@ const App = (() => {
         const t2 = lookupTable(T2_TABLES, String(c.nbrazos), c.S_mm, L_mm);
         if (t2 != null) return Math.round(t2 + ajusteT2Modelo(c.modelo));
       } else {
+        // T3 (de la tabla) es el margen de fábrica extremo→terminal cuando el brazo
+        // está en su posición ESTÁNDAR (a L3 del extremo). Si la cota del brazo se ha
+        // movido a mano (asimétrico, no viene de "Calcular posición brazos"), hay que
+        // desplazar el terminal con él: se pasa T3 a un offset fijo brazo→terminal
+        // (T3 − L3) y se aplica sobre la cota REAL, espejado según el lado — igual que
+        // MODULBOX-400. Antes se devolvía T3 tal cual y el terminal del lado derecho
+        // no se movía aunque se cambiara su cota (no se medía desde la derecha real).
         const t3 = lookupTable(T3_TABLES, String(c.nbrazos), c.S_mm, L_mm);
-        if (t3 != null) return Math.round(t3);
+        const l3 = getL3(c.S_mm, L_mm, c.nbrazos, 'NO');
+        if (t3 != null && l3 != null) {
+          const offsetBrazoTerminal = t3 - l3;
+          return lado === 'izq'
+            ? Math.round(posicion + offsetBrazoTerminal)
+            : Math.round(L_mm - posicion + offsetBrazoTerminal);
+        }
       }
     }
     const offset = tieneTejadillo ? 174 : 188;
