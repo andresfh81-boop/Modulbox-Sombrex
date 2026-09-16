@@ -170,7 +170,7 @@
 
     @media print {
       @page { size: landscape; margin: 10mm; }
-      header, .form, .no-print, .btn-group, .notification, .col-taller { display: none !important; }
+      header, .form, .no-print, .btn-group, .notification, .col-taller, .medida-control { display: none !important; }
       body { background: #fff; }
       .wrap { padding: 0; display: block; }
       .plan { box-shadow: none; border: none; padding: 0; background: #fff; }
@@ -192,6 +192,13 @@
     body.view-taller tr.taller-only { display: table-row !important; }
 
     .vista-toggle { margin-top: 0; margin-bottom: 12px; }
+
+    /* Medidas de control (codo-codo / codo-soporte): solo para uso propio en pantalla,
+       nunca deben salir en el plano de cliente ni de taller (ver regla en @media print
+       de arriba) ni en las exportaciones a PDF/PNG (ver ignoreElements en exportPDF/PNG). */
+    .medida-control { margin-top: 16px; padding: 10px 14px; border: 1px dashed #c99; border-radius: 6px; background: #fff6f6; }
+    .medida-control h4 { margin: 0 0 6px; font-size: 0.85rem; color: #a33; }
+    .medida-control div { font-size: 0.82rem; color: #333; }
     .view-toggle-btn {
       margin-top: 0; background: #e5e7eb; color: #374151; border: 1px solid var(--border);
     }
@@ -2545,7 +2552,7 @@ const App = (() => {
       return;
     }
     const target = refs.planoOut;
-    html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', ignoreElements: el => el.classList && el.classList.contains('col-taller') }).then(canvas => {
+    html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', ignoreElements: el => el.classList && (el.classList.contains('col-taller') || el.classList.contains('medida-control')) }).then(canvas => {
       const link = document.createElement('a');
       link.download = `Modulbox_${sanitizeFilename(refs.pedido.value || 'Plan')}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -2563,7 +2570,7 @@ const App = (() => {
       return;
     }
     const target = refs.planoOut;
-    html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', ignoreElements: el => el.classList && el.classList.contains('col-taller') }).then(canvas => {
+    html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', ignoreElements: el => el.classList && (el.classList.contains('col-taller') || el.classList.contains('medida-control')) }).then(canvas => {
       const { jsPDF } = window.jspdf;
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
@@ -2783,6 +2790,7 @@ const App = (() => {
     });
 
     let colisionesPlegado = [];
+    let medidasCodo = [];
     let brazosOrdenados = [...brazos].sort((a, b) => a.cota - b.cota);
 
     for (let i = 1; i < brazosOrdenados.length; i++) {
@@ -2799,9 +2807,13 @@ const App = (() => {
       if (aInv && bInv) {
         nec = (brazoRep * 2) + holgura;
         tipo = t3('enfrentados → hueco DOBLE', 'facing → DOUBLE gap', 'opposés → espace DOUBLE', 'gegenüberliegend → DOPPELTE Lücke', 'contrapposti → spazio DOPPIO', 'frente a frente → espaço DUPLO');
+        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo P${a.n} – Codo P${b.n}`, valor: Math.round(sep - brazoRep * 2) });
       } else if (aInv || bInv) {
         nec = brazoRep + holgura;
         tipo = t3('un brazo en el hueco', 'one arm in gap', 'un bras dans l\'espace', 'ein Arm in der Lücke', 'un braccio nello spazio', 'um braço no espaço');
+        const pFolded = aInv ? a.n : b.n;
+        const pFijo = aInv ? b.n : a.n;
+        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo P${pFolded} – Soporte P${pFijo}`, valor: Math.round(sep - brazoRep) });
       } else {
         nec = holgura;
         tipo = t3('divergentes', 'diverging', 'divergents', 'divergierend', 'divergenti', 'divergentes');
@@ -3271,6 +3283,15 @@ const App = (() => {
             </thead>
             <tbody>${terminalRows}</tbody>
           </table>
+        </div>
+      `;
+    }
+
+    if (medidasCodo.length) {
+      svgHtml += `
+        <div class="medida-control">
+          <h4>🔒 Medidas de control (solo pantalla, no sale en cliente/taller/PDF/PNG)</h4>
+          ${medidasCodo.map(m => `<div>${m.texto}: <b>${m.valor} mm</b></div>`).join('')}
         </div>
       `;
     }
