@@ -199,9 +199,21 @@
     .view-toggle-btn.active { background: #1f2937; color: #fff; }
     .view-toggle-btn.active:hover { background: #1f2937; }
 
-    .plano-click-zoom { cursor: zoom-in; border-radius: 8px; transition: outline-color .15s; outline: 2px dashed transparent; outline-offset: 4px; }
+    .plano-click-zoom { position: relative; cursor: zoom-in; border-radius: 8px; transition: outline-color .15s; outline: 2px dashed transparent; outline-offset: 4px; }
     .plano-click-zoom:hover { outline-color: #9ca3af; }
     .plano-modal-body .plano-click-zoom { cursor: zoom-out; }
+
+    /* Lupa: al mover el ratón sobre el plano, muestra una copia ampliada del mismo SVG
+       centrada en el cursor. Solo con ratón (mousemove) — en táctil no aparece, ahí se
+       sigue usando el clic para ampliar a pantalla completa. */
+    .plano-lens {
+      display: none; position: absolute; width: 180px; height: 180px; border-radius: 50%;
+      overflow: hidden; pointer-events: none; z-index: 10; background: #fff;
+      border: 3px solid #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.12);
+    }
+    .plano-lens.active { display: block; }
+    .plano-lens-inner { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+    .plano-lens-inner svg { display: block; }
 
     .plano-toolbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
     .btn-zoom-plano {
@@ -2482,6 +2494,41 @@ const App = (() => {
     refs.planoModalOverlay.classList.remove('active');
   };
 
+  // Lupa sobre el plano: sigue al cursor y muestra, dentro de un círculo, una copia del
+  // mismo SVG ampliada ${LENS_ZOOM}x y desplazada para que el punto bajo el cursor quede
+  // centrado en la lupa. El SVG interior se mantiene al mismo tamaño en píxeles que el
+  // original (se reajusta en cada movimiento por si la ventana es responsive) para que la
+  // correspondencia cursor↔contenido sea exacta antes de aplicar el zoom.
+  const LENS_ZOOM = 2.5;
+  const LENS_RADIUS = 90;
+  const actualizarLupa = (e) => {
+    const zoomWrap = e.target.closest('.plano-click-zoom');
+    const lens = document.getElementById('planoLens');
+    const enModal = refs.planoModalOverlay.classList.contains('active');
+    if (!zoomWrap || !lens || enModal) { if (lens) lens.classList.remove('active'); return; }
+    const lensInner = document.getElementById('planoLensInner');
+    const origSvg = zoomWrap.querySelector(':scope > svg');
+    const lensSvg = lensInner && lensInner.querySelector('svg');
+    if (!origSvg || !lensSvg) return;
+
+    const rect = zoomWrap.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+
+    const origRect = origSvg.getBoundingClientRect();
+    lensSvg.style.width = origRect.width + 'px';
+    lensSvg.style.height = origRect.height + 'px';
+
+    lens.style.left = (cx - LENS_RADIUS) + 'px';
+    lens.style.top = (cy - LENS_RADIUS) + 'px';
+    lensInner.style.transform = `translate(${LENS_RADIUS - cx * LENS_ZOOM}px, ${LENS_RADIUS - cy * LENS_ZOOM}px) scale(${LENS_ZOOM})`;
+    lens.classList.add('active');
+  };
+  const ocultarLupa = () => {
+    const lens = document.getElementById('planoLens');
+    if (lens) lens.classList.remove('active');
+  };
+
   const clearData = () => {
     if (confirm(i18n[currentLang].confirmClear)) {
       applyState({ pedido: '', cliente: '', linea: '', salida: '2000', ladoMotor: 'izq', holgura: '50', cotasPared: '', numBrazos: '', observaciones: '', brazosData: [] });
@@ -2618,6 +2665,8 @@ const App = (() => {
       if (refs.planoModalOverlay.classList.contains('active')) cerrarPlanoModal();
       else abrirPlanoModal();
     });
+    refs.planoOut.addEventListener('mousemove', actualizarLupa);
+    refs.planoOut.addEventListener('mouseleave', ocultarLupa);
     refs.btnCerrarPlano.addEventListener('click', cerrarPlanoModal);
     refs.planoModalOverlay.addEventListener('click', (e) => {
       if (e.target === refs.planoModalOverlay) cerrarPlanoModal();
@@ -3065,18 +3114,9 @@ const App = (() => {
 
     const totalHeight = perfilRows.length ? (rowY - 8) : baseHeight;
 
-    let svgHtml = `
-      <div class="plan-header">
-        <div>
-          <span style="font-size:1.15rem; font-weight:800; color:var(--text);">${labels.planoTitulo}</span>
-        </div>
-        <div class="plan-meta">
-          📋 ${labels.metaPedido}: <b>${pedido}</b> &nbsp;&middot;&nbsp; 👤 ${labels.metaCliente}: <b>${cliente}</b><br/>
-          📏 ${labels.metaLinea}: <b>${L} mm</b> &nbsp;&middot;&nbsp; 📐 ${labels.metaSalida}: <b>${S} mm</b> &nbsp;&middot;&nbsp; ⚡ ${labels.metaMotor}: <b>${motor === 'izq' ? labels.motorIzq : labels.motorDer}</b>
-        </div>
-      </div>
-
-      <div class="plano-click-zoom" title="${labels.tituloAmpliarClick}">
+    // SVG del plano, generado una sola vez y reutilizado tal cual dentro de la lupa
+    // (misma viewBox, así que basta con escalarlo con CSS para ampliarlo sin perder nitidez).
+    const svgDiagram = `
       <svg viewBox="0 0 ${vbWidth} ${totalHeight}" width="100%">
         <defs>
           <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
@@ -3103,14 +3143,32 @@ const App = (() => {
 
         <rect x="${marginLeft}" y="${yBar - 6}" width="${usableWidth}" height="14" rx="2" fill="#374151" filter="url(#shadow)" />
         <rect x="${marginLeft}" y="${yBar - 3}" width="${usableWidth}" height="3" fill="#4b5563" />
-        
+
         <line x1="${marginLeft}" y1="${yBar - 20}" x2="${marginLeft}" y2="${yBar + 20}" stroke="#111827" stroke-width="3.5"/>
         <line x1="${marginLeft + usableWidth}" y1="${yBar - 20}" x2="${marginLeft + usableWidth}" y2="${yBar + 20}" stroke="#111827" stroke-width="3.5"/>
-        
+
         <text x="${marginLeft - 18}" y="${yBar + 5}" text-anchor="end" font-size="14" font-weight="bold" fill="#111827">0</text>
         <text x="${marginLeft + usableWidth + 18}" y="${yBar + 5}" text-anchor="start" font-size="14" font-weight="bold" fill="#111827">${L}</text>
         ${imageElements}
       </svg>
+    `;
+
+    let svgHtml = `
+      <div class="plan-header">
+        <div>
+          <span style="font-size:1.15rem; font-weight:800; color:var(--text);">${labels.planoTitulo}</span>
+        </div>
+        <div class="plan-meta">
+          📋 ${labels.metaPedido}: <b>${pedido}</b> &nbsp;&middot;&nbsp; 👤 ${labels.metaCliente}: <b>${cliente}</b><br/>
+          📏 ${labels.metaLinea}: <b>${L} mm</b> &nbsp;&middot;&nbsp; 📐 ${labels.metaSalida}: <b>${S} mm</b> &nbsp;&middot;&nbsp; ⚡ ${labels.metaMotor}: <b>${motor === 'izq' ? labels.motorIzq : labels.motorDer}</b>
+        </div>
+      </div>
+
+      <div class="plano-click-zoom" title="${labels.tituloAmpliarClick}">
+      ${svgDiagram}
+      <div class="plano-lens" id="planoLens">
+        <div class="plano-lens-inner" id="planoLensInner">${svgDiagram}</div>
+      </div>
       </div>
     `;
 
