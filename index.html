@@ -2817,6 +2817,7 @@ const App = (() => {
       } else {
         nec = holgura;
         tipo = t3('divergentes', 'diverging', 'divergents', 'divergierend', 'divergenti', 'divergentes');
+        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo P${a.n} – Codo P${b.n} (divergentes)`, valor: Math.round(sep + brazoRep * 2) });
       }
 
       if (sep < nec) {
