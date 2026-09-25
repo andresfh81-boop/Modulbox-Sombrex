@@ -355,12 +355,15 @@
 
     <div class="form-section">
       <h3 id="secSoportes">Colocación de soportes</h3>
-      <label id="lblNumBrazos" for="numBrazos">💪 Número de brazos (2–4)</label>
+      <label id="lblNumBrazos" for="numBrazos">💪 Número de brazos (2–3)</label>
       <select id="numBrazos">
         <option id="optNumBrazosVacio" value="">— Elegir / Choose —</option>
         <option id="optNumBrazos2" value="2">2 brazos</option>
         <option id="optNumBrazos3" value="3">3 brazos</option>
-        <option id="optNumBrazos4" value="4">4 brazos</option>
+        <!-- Sombrex con 4 brazos no se fabrica de momento (confirmado por Andrés, 25-sep-2026).
+             Opción oculta y desactivada; las tablas de 4 brazos siguen en el código por si se
+             retoma. Para reactivarla, quitar "hidden disabled" y volver a poner (2–4) en lblNumBrazos. -->
+        <option id="optNumBrazos4" value="4" hidden disabled>4 brazos</option>
       </select>
 
       <label for="brazosCruzados"><span id="lblBC">✖️ Brazos Cruzados</span> <span id="lblBCnota" style="font-weight:400; color: var(--text-muted);">(solo 2 brazos)</span></label>
@@ -1082,7 +1085,7 @@ const App = (() => {
       secSoportes: "🔧 Colocación de soportes",
       lblCasPared: "📍 Soportes de PARED (mm, sep. por comas o saltos)",
       phCasPared: "Ejemplo: 250, 3000, 5750",
-      lblNumBrazos: "💪 Número de brazos (2–4)",
+      lblNumBrazos: "💪 Número de brazos (2–3)",
       lblBC: "✖️ Brazos Cruzados",
       lblBCnota: "(solo 2 brazos)",
       secPerfiles: "🏠 Perfiles tejadillo/lira e inferior",
@@ -1209,7 +1212,7 @@ const App = (() => {
       secSoportes: "🔧 Bracket Placement",
       lblCasPared: "📍 WALL Brackets (mm, separated by comma or break)",
       phCasPared: "Example: 250, 3000, 5750",
-      lblNumBrazos: "💪 Number of arms (2–4)",
+      lblNumBrazos: "💪 Number of arms (2–3)",
       lblBC: "✖️ Crossed Arms",
       lblBCnota: "(2 arms only)",
       secPerfiles: "🏠 Canopy/lyre and lower profiles",
@@ -1336,7 +1339,7 @@ const App = (() => {
       secSoportes: "🔧 Configuration des supports",
       lblCasPared: "📍 Supports MURAUX (mm, séparés par des virgules ou des retours à la ligne)",
       phCasPared: "Exemple : 250, 3000, 5750",
-      lblNumBrazos: "💪 Nombre de bras (2 à 4)",
+      lblNumBrazos: "💪 Nombre de bras (2 à 3)",
       lblBC: "✖️ Bras croisés",
       lblBCnota: "(2 bras uniquement)",
       secPerfiles: "🏠 Profilés auvent/lyre et inférieur",
@@ -1463,7 +1466,7 @@ const App = (() => {
       secSoportes: "🔧 Konfiguration der Stützen",
       lblCasPared: "📍 WAND-Stützen (mm, getrennt durch Kommas oder Zeilenumbrüche)",
       phCasPared: "Beispiel: 250, 3000, 5750",
-      lblNumBrazos: "💪 Anzahl der Arme (2–4)",
+      lblNumBrazos: "💪 Anzahl der Arme (2–3)",
       lblBC: "✖️ Gekreuzte Arme",
       lblBCnota: "(nur 2 Arme)",
       secPerfiles: "🏠 Vordach-/Lyra- und Unterprofile",
@@ -1590,7 +1593,7 @@ const App = (() => {
       secSoportes: "🔧 Configurazione delle staffe",
       lblCasPared: "📍 Staffe a MURO (mm, separate da virgole o a capo)",
       phCasPared: "Esempio: 250, 3000, 5750",
-      lblNumBrazos: "💪 Numero di bracci (2–4)",
+      lblNumBrazos: "💪 Numero di bracci (2–3)",
       lblBC: "✖️ Bracci Incrociati",
       lblBCnota: "(solo 2 bracci)",
       secPerfiles: "🏠 Profili tettuccio/lira e inferiore",
@@ -1717,7 +1720,7 @@ const App = (() => {
       secSoportes: "🔧 Configuração dos suportes",
       lblCasPared: "📍 Suportes de PAREDE (mm, separados por vírgulas ou quebras de linha)",
       phCasPared: "Exemplo: 250, 3000, 5750",
-      lblNumBrazos: "💪 Número de braços (2–4)",
+      lblNumBrazos: "💪 Número de braços (2–3)",
       lblBC: "✖️ Braços Cruzados",
       lblBCnota: "(apenas 2 braços)",
       secPerfiles: "🏠 Perfis telhadinho/lira e inferior",
@@ -1920,7 +1923,9 @@ const App = (() => {
     refs.holgura.value    = state.holgura    || '50';
     refs.grosorTapa.value = state.grosorTapa || '19';
     refs.cotasPared.value = state.cotasPared || '';
-    refs.numBrazos.value  = state.numBrazos  || '';
+    // Si el estado trae un nº de brazos no disponible (p. ej. 4, desactivado en Sombrex), se deja vacío.
+    const optNb = [...refs.numBrazos.options].find(o => o.value === String(state.numBrazos || ''));
+    refs.numBrazos.value  = (optNb && !optNb.disabled) ? optNb.value : '';
     refs.brazosCruzados.value = state.brazosCruzados || 'NO';
     refs.perfilTejadillo.value = state.perfilTejadillo || 'NO';
     refs.numTejadillo.value = state.numTejadillo || '';
@@ -2355,7 +2360,7 @@ const App = (() => {
     }
 
     const nb = grab(/N[UO]?MERO\s*DE\s*BRAZOS[:\s]*([234])/) || grab(/\b([234])\s*UN\b/);
-    if (nb) out.numBrazos = nb;
+    if (nb && nb !== '4') out.numBrazos = nb; // 4 brazos: no se fabrica en Sombrex (opción desactivada)
 
     let lado = grab(/LADO\s*ACCIONAMIENTO[:\s]*([A-Z]+)/);
     if (!lado) lado = has(/\bIZQUIERDA\b/) ? 'IZQUIERDA' : has(/\bDERECHA\b/) ? 'DERECHA' : null;

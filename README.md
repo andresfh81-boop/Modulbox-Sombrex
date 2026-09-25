@@ -13,7 +13,8 @@ datos de la variante Sombrex (`Arms and brackets Modulbox_sbx_Ad.xlsx`).
 - Terminales calculados por tabla: **T3** (brazos laterales) y **T2** (brazo central, 3+ brazos),
   con ajuste de **T2 según el modelo** (OPEN → +19,5 mm; SemiOPEN → +35 mm; SemiBOX/FullBOX → sin ajuste).
 - Salida hasta 3,50 m.
-- **4 brazos**: aproximado con las tablas de la MODULBOX‑400 (el Excel Sombrex no trae datos de 4 brazos).
+- **4 brazos**: desactivado (no se fabrica de momento). Las tablas aproximadas de la MODULBOX‑400
+  siguen en el código por si se retoma; basta con reactivar la opción en el selector.
 - Redondeo de línea al múltiplo de 0,25 m superior (como la MODULBOX‑400), no truncado como el Excel.
 
 ## Publicar en GitHub Pages
