@@ -2794,6 +2794,13 @@ const App = (() => {
       document.getElementById('cota' + b.n)?.classList.remove('error');
     });
 
+    // Separación mínima entre soportes brazo contiguos (centro a centro) del manual de
+    // fabricación KÜADBOX-400 REV 2.2 (apdos. 3.4–3.6), que lleva los mismos brazos Onyx:
+    // enfrentados (Izq→Der) S + 360; mismo lado S/2 + 250; divergentes no contemplado.
+    // Solo se usa para el aviso de colisión (junto al cálculo de plegado, el mayor de los
+    // dos); el cálculo de posiciones sigue con las tablas de Llaza de este modelo.
+    const minManualOnyx = (ladoA, ladoB) =>
+      (ladoA === 'izq' && ladoB === 'der') ? S + 360 : (ladoA === ladoB ? S / 2 + 250 : 0);
     let colisionesPlegado = [];
     let medidasCodo = [];
     let brazosOrdenados = [...brazos].sort((a, b) => a.cota - b.cota);
@@ -2825,8 +2832,12 @@ const App = (() => {
         medidasCodo.push({ a: a.n, b: b.n, texto: `Codo P${a.n} – Codo P${b.n} (divergentes)`, valor: Math.round(sep + brazoRep * 2) });
       }
 
+      const necManual = minManualOnyx(a.lado, b.lado);
+      const porManual = necManual > nec;
+      if (porManual) nec = necManual;
+
       if (sep < nec) {
-        colisionesPlegado.push(`${labels.errColisionPlegado} P${a.n}–P${b.n} (${tipo}): gap ${sep}mm < ${Math.round(nec)}mm (Brazo Onyx: ${brazoRep}mm).`);
+        colisionesPlegado.push(`${labels.errColisionPlegado} P${a.n}–P${b.n} (${tipo}): gap ${sep}mm < ${Math.round(nec)}mm (Brazo Onyx: ${brazoRep}mm${porManual ? ` · mín. manual Onyx ${aInv && bInv ? 'B' : 'C'}min ${Math.round(necManual)}mm` : ''}).`);
         
         const bOrigA = brazos.find(x => x.n === a.n);
         const bOrigB = brazos.find(x => x.n === b.n);
