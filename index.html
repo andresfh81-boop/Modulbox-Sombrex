@@ -340,7 +340,7 @@
         </div>
         <div>
           <label id="lblHolgura" for="holgura">🔧 Holgura seg. (mm)</label>
-          <input id="holgura" type="number" min="0" value="50" placeholder="Ej. 50" />
+          <input id="holgura" type="number" min="0" value="0" placeholder="Ej. 20" />
         </div>
       </div>
       <div class="row">
@@ -1920,7 +1920,7 @@ const App = (() => {
     refs.linea.value      = state.linea      || '';
     refs.salida.value     = state.salida     || '2000';
     refs.ladoMotor.value  = state.ladoMotor  || 'izq';
-    refs.holgura.value    = state.holgura    || '50';
+    refs.holgura.value    = state.holgura    || '0';
     refs.grosorTapa.value = state.grosorTapa || '19';
     refs.cotasPared.value = state.cotasPared || '';
     // Si el estado trae un nº de brazos no disponible (p. ej. 4, desactivado en Sombrex), se deja vacío.
@@ -2543,7 +2543,7 @@ const App = (() => {
 
   const clearData = () => {
     if (confirm(i18n[currentLang].confirmClear)) {
-      applyState({ pedido: '', cliente: '', linea: '', salida: '2000', ladoMotor: 'izq', holgura: '50', cotasPared: '', numBrazos: '', observaciones: '', brazosData: [] });
+      applyState({ pedido: '', cliente: '', linea: '', salida: '2000', ladoMotor: 'izq', holgura: '0', cotasPared: '', numBrazos: '', observaciones: '', brazosData: [] });
       render(); saveState();
       showNotification(i18n[currentLang].notifClear);
     }
@@ -2837,12 +2837,15 @@ const App = (() => {
         medidasCodo.push({ a: a.n, b: b.n, texto: `Codo P${a.n} – Codo P${b.n} (divergentes)`, valor: Math.round(sep + brazoRep * 2) });
       }
 
+      // La holgura se suma encima del mínimo que mande (plegado o manual): por defecto 0;
+      // si en taller aparece una colisión, se sube la holgura en el plano y se revisa.
       const necManual = minManualOnyx(a.lado, b.lado);
-      const porManual = necManual > nec;
-      if (porManual) nec = necManual;
+      const necPlegado = nec - holgura;
+      const porManual = necManual > necPlegado;
+      nec = Math.max(necPlegado, necManual) + holgura;
 
       if (sep < nec) {
-        colisionesPlegado.push(`${labels.errColisionPlegado} P${a.n}–P${b.n} (${tipo}): gap ${sep}mm < ${Math.round(nec)}mm (Brazo Onyx: ${brazoRep}mm${porManual ? ` · mín. manual Onyx ${aInv && bInv ? 'B' : 'C'}min ${Math.round(necManual)}mm` : ''}).`);
+        colisionesPlegado.push(`${labels.errColisionPlegado} P${a.n}–P${b.n} (${tipo}): gap ${sep}mm < ${Math.round(nec)}mm (Brazo Onyx: ${brazoRep}mm${porManual ? ` · mín. manual Onyx ${aInv && bInv ? 'B' : 'C'}min ${Math.round(necManual)}mm` : ''}${holgura ? ` + holgura ${holgura}mm` : ''}).`);
         
         const bOrigA = brazos.find(x => x.n === a.n);
         const bOrigB = brazos.find(x => x.n === b.n);
