@@ -2951,8 +2951,9 @@ const App = (() => {
     // siempre desde el extremo izquierdo, con o sin tapas). Además, para soportes brazo,
     // ±30mm (mitad del soporte brazo) para que la marca quede al borde del soporte y no
     // al centro, donde el propio soporte la taparía: izq -30, der +30.
-    // (Portado de MODULBOX-400 — pendiente de confirmar con Andrés que el soporte brazo
-    // físico de Sombrex mide lo mismo, 30mm de mitad.)
+    // (Confirmado por Andrés: Sombrex usa los mismos soportes que la MODULBOX-400, 60mm
+    // de ancho → 30mm de mitad. La diferencia entre ambos toldos está en la barra de carga,
+    // más pesada en Sombrex por llevar una lona de ~1400mm de salida con su propio motor.)
     const cotaTallerSoporte = (cota, lado) => {
       if (!grosorTapa) return null;
       if (lado === 'der') return cota - grosorTapa + 30;
