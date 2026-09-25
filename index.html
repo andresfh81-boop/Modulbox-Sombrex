@@ -942,6 +942,38 @@ const App = (() => {
   const getL2 = (S_mm, L_mm, nbrazos) =>
     lookupTable(L2_TABLES, String(nbrazos), S_mm, L_mm);
 
+  // Separación mínima entre soportes brazo contiguos (centro a centro), extrapolada del
+  // manual de fabricación KÜADBOX-400 REV 2.2 (apdos. 3.4–3.6), que lleva los mismos
+  // brazos Onyx: enfrentados (Izq→Der) S + 360; mismo lado S/2 + 250; divergentes no
+  // contemplado. El soporte brazo de KÜADBOX mide 54 mm y el de MODULBOX 60 mm: se mantiene
+  // la misma holgura entre bordes, así que se suman 3 mm por cada uno de los dos soportes
+  // del hueco (+6 mm, confirmado por Andrés, 25-sep-2026).
+  const AJUSTE_SOPORTE_MODULBOX = (60 - 54) / 2 * 2;
+  const minSepManualOnyx = (ladoA, ladoB, S_mm) =>
+    (ladoA === 'izq' && ladoB === 'der') ? S_mm + 360 + AJUSTE_SOPORTE_MODULBOX
+    : (ladoA === ladoB ? S_mm / 2 + 250 + AJUSTE_SOPORTE_MODULBOX : 0);
+  // Hueco necesario = el mayor entre plegado (brazo Onyx: un brazo Izq pliega hacia la
+  // derecha, uno Der hacia la izquierda) y el mínimo del manual, más la holgura.
+  const huecoNecesarioOnyx = (ladoA, ladoB, S_mm, holgura) => {
+    const R = getBrazoPlegadoReal(S_mm);
+    const plegado = (ladoA === 'izq' ? R : 0) + (ladoB === 'der' ? R : 0);
+    return Math.max(plegado, minSepManualOnyx(ladoA, ladoB, S_mm)) + holgura;
+  };
+  // Reparte 'total' entre los huecos lo más a partes iguales posible sin bajar de ningún
+  // mínimo: hueco = max(mínimo, t), con t tal que la suma cuadre (en mm enteros).
+  const repartirHuecosEquidistantes = (total, minimos) => {
+    let lo = 0, hi = total;
+    for (let k = 0; k < 60; k++) {
+      const t = (lo + hi) / 2;
+      if (minimos.reduce((acc, m) => acc + Math.max(m, t), 0) > total) hi = t; else lo = t;
+    }
+    const base = Math.floor(lo);
+    const huecos = minimos.map(m => Math.max(Math.ceil(m), base));
+    let resto = total - huecos.reduce((a, b) => a + b, 0);
+    for (let i = 0; resto > 0 && i < huecos.length; i++) { if (huecos[i] === base) { huecos[i]++; resto--; } }
+    return huecos;
+  };
+
   // Calcula la posición (cota, mm) de cada soporte brazo según L3 (margen) + L1 (huecos
   // entre brazos enfrentados, izq→der) o L2 (resto de huecos, "en línea").
   const calcularPosicionesBrazos = (S_mm, L_mm, nbrazos, bc, ladoArray) => {
@@ -966,6 +998,22 @@ const App = (() => {
       const sum = gaps.reduce((a, b) => a + b, 0);
       const ajuste = (target - sum) / gaps.length;
       for (let i = 0; i < gaps.length; i++) gaps[i] += ajuste;
+    }
+    // Con 3 o 4 brazos las tablas LLAZA juntan los brazos al mínimo (p. ej. L 6000, S 3000:
+    // 350 / 2209 / 5650), y el cofre cierra peor en el lado con menos soportes: cada soporte
+    // brazo empuja un patín en la barra de carga. Por eso (criterio de Andrés, 25-sep-2026)
+    // los extremos se dejan donde dice la tabla (L3) y los centrales se reparten lo más
+    // equidistantes posible sin bajar del hueco necesario. Si no caben, se queda la tabla
+    // (y el aviso de colisión lo señalará).
+    if (nbrazos > 2) {
+      const holgura = Number(refs.holgura.value) || 0;
+      const minimos = [];
+      for (let i = 1; i < nbrazos; i++) minimos.push(huecoNecesarioOnyx(ladoArray[i - 1], ladoArray[i], S_mm, holgura));
+      const total = Math.round(L_mm - 2 * l3);
+      if (minimos.reduce((a, m) => a + Math.ceil(m), 0) <= total) {
+        const eq = repartirHuecosEquidistantes(total, minimos);
+        for (let i = 0; i < gaps.length; i++) gaps[i] = eq[i];
+      }
     }
     const positions = [l3];
     for (let i = 0; i < gaps.length; i++) positions.push(positions[i] + gaps[i]);
@@ -2794,18 +2842,8 @@ const App = (() => {
       document.getElementById('cota' + b.n)?.classList.remove('error');
     });
 
-    // Separación mínima entre soportes brazo contiguos (centro a centro), extrapolada del
-    // manual de fabricación KÜADBOX-400 REV 2.2 (apdos. 3.4–3.6), que lleva los mismos
-    // brazos Onyx: enfrentados (Izq→Der) S + 360; mismo lado S/2 + 250; divergentes no
-    // contemplado. El soporte brazo de KÜADBOX mide 54 mm y el de MODULBOX 60 mm: se mantiene
-    // la misma holgura entre bordes, así que se suman 3 mm por cada uno de los dos soportes
-    // del hueco (+6 mm, confirmado por Andrés, 25-sep-2026).
-    // Solo se usa para el aviso de colisión (junto al cálculo de plegado, el mayor de los
-    // dos); el cálculo de posiciones sigue con las tablas de Llaza de este modelo.
-    const AJUSTE_SOPORTE_MODULBOX = (60 - 54) / 2 * 2;
-    const minManualOnyx = (ladoA, ladoB) =>
-      (ladoA === 'izq' && ladoB === 'der') ? S + 360 + AJUSTE_SOPORTE_MODULBOX
-      : (ladoA === ladoB ? S / 2 + 250 + AJUSTE_SOPORTE_MODULBOX : 0);
+    // Mínimo del manual (ver minSepManualOnyx), junto al cálculo de plegado: el mayor de los dos.
+    const minManualOnyx = (ladoA, ladoB) => minSepManualOnyx(ladoA, ladoB, S);
     let colisionesPlegado = [];
     let medidasCodo = [];
     let brazosOrdenados = [...brazos].sort((a, b) => a.cota - b.cota);
