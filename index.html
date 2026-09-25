@@ -966,6 +966,27 @@ const App = (() => {
     return Math.max(plegado, minSepManualOnyx(ladoA, ladoB, S_mm)) + (enfrentado ? holgura : 0);
   };
 
+  // Reparto con holgura (criterio de Andrés, 25-sep-2026): se parte del reparto equidistante
+  // sin holgura y cada hueco enfrentado (Izq → Der) se agranda EXACTAMENTE la holgura, tenga
+  // margen o no, para que el soporte interior siempre se mueva. Los demás huecos ceden ese
+  // espacio repartido a partes iguales sin bajar de su mínimo; si no hay sitio para toda la
+  // holgura, se aplica la que quepa.
+  const repartoConHolgura = (total, lados, minimos0, holgura) => {
+    const base = repartirHuecosEquidistantes(total, minimos0);
+    const idxEnf = [], idxOtros = [];
+    for (let i = 0; i < minimos0.length; i++) (lados[i] === 'izq' && lados[i + 1] === 'der' ? idxEnf : idxOtros).push(i);
+    if (!holgura || !idxEnf.length || !idxOtros.length) return base;
+    const minOtros = idxOtros.reduce((a, i) => a + Math.ceil(minimos0[i]), 0);
+    const baseEnf = idxEnf.reduce((a, i) => a + base[i], 0);
+    const extra = Math.max(0, Math.min(Math.round(holgura) * idxEnf.length, total - minOtros - baseEnf));
+    const huecos = base.slice();
+    idxEnf.forEach((i, k) => { huecos[i] = base[i] + Math.floor(extra / idxEnf.length) + (k < extra % idxEnf.length ? 1 : 0); });
+    const restante = total - idxEnf.reduce((a, i) => a + huecos[i], 0);
+    const otros = repartirHuecosEquidistantes(restante, idxOtros.map(i => minimos0[i]));
+    idxOtros.forEach((i, k) => { huecos[i] = otros[k]; });
+    return huecos;
+  };
+
   // Recoloca los soportes interiores entre los dos extremos actuales al cambiar la holgura.
   const recolocarInteriores = () => {
     const L = Number(refs.linea.value) || 0;
@@ -983,10 +1004,10 @@ const App = (() => {
     for (let i = 1; i < n; i++) if (c[i] <= c[i - 1]) return false;
     const holgura = Number(refs.holgura.value) || 0;
     const minimos = [];
-    for (let i = 1; i < n; i++) minimos.push(huecoNecesarioOnyx(lados[i - 1], lados[i], S, holgura));
+    for (let i = 1; i < n; i++) minimos.push(huecoNecesarioOnyx(lados[i - 1], lados[i], S, 0));
     const total = c[n - 1] - c[0];
     if (minimos.reduce((a, m) => a + Math.ceil(m), 0) > total) return false;
-    const huecos = repartirHuecosEquidistantes(total, minimos);
+    const huecos = repartoConHolgura(total, lados, minimos, holgura);
     let pos = c[0];
     for (let i = 1; i < n - 1; i++) { pos += huecos[i - 1]; document.getElementById('cota' + (i + 1)).value = pos; }
     return true;
@@ -1040,10 +1061,10 @@ const App = (() => {
     if (nbrazos > 2) {
       const holgura = Number(refs.holgura.value) || 0;
       const minimos = [];
-      for (let i = 1; i < nbrazos; i++) minimos.push(huecoNecesarioOnyx(ladoArray[i - 1], ladoArray[i], S_mm, holgura));
+      for (let i = 1; i < nbrazos; i++) minimos.push(huecoNecesarioOnyx(ladoArray[i - 1], ladoArray[i], S_mm, 0));
       const total = Math.round(L_mm - 2 * l3);
       if (minimos.reduce((a, m) => a + Math.ceil(m), 0) <= total) {
-        const eq = repartirHuecosEquidistantes(total, minimos);
+        const eq = repartoConHolgura(total, ladoArray, minimos, holgura);
         for (let i = 0; i < gaps.length; i++) gaps[i] = eq[i];
       }
     }
