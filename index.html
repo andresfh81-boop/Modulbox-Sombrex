@@ -954,10 +954,42 @@ const App = (() => {
     : (ladoA === ladoB ? S_mm / 2 + 250 + AJUSTE_SOPORTE_MODULBOX : 0);
   // Hueco necesario = el mayor entre plegado (brazo Onyx: un brazo Izq pliega hacia la
   // derecha, uno Der hacia la izquierda) y el mínimo del manual, más la holgura.
+  // Holgura (criterio de Andrés, 25-sep-2026): por defecto 0. Solo se suma al hueco donde
+  // se pliegan dos brazos uno contra otro (Izq → Der), que es donde chocan brazo con brazo.
+  // Al cambiarla, los soportes interiores se recolocan solos (los extremos no se tocan):
+  // ese hueco se abre y los demás ceden espacio sin bajar de su mínimo. Si no cabe, no se
+  // mueve nada y salta el aviso de colisión.
   const huecoNecesarioOnyx = (ladoA, ladoB, S_mm, holgura) => {
     const R = getBrazoPlegadoReal(S_mm);
     const plegado = (ladoA === 'izq' ? R : 0) + (ladoB === 'der' ? R : 0);
-    return Math.max(plegado, minSepManualOnyx(ladoA, ladoB, S_mm)) + holgura;
+    const enfrentado = ladoA === 'izq' && ladoB === 'der';
+    return Math.max(plegado, minSepManualOnyx(ladoA, ladoB, S_mm)) + (enfrentado ? holgura : 0);
+  };
+
+  // Recoloca los soportes interiores entre los dos extremos actuales al cambiar la holgura.
+  const recolocarInteriores = () => {
+    const L = Number(refs.linea.value) || 0;
+    const S = Number(refs.salida.value) || 0;
+    const n = +refs.numBrazos.value || 0;
+    if (L <= 0 || S <= 0 || n < 3) return false;
+    const lados = [], c = [];
+    for (let i = 1; i <= n; i++) {
+      lados.push(document.getElementById('lado' + i)?.value || '');
+      const v = document.getElementById('cota' + i)?.value;
+      if (v === '' || v == null) return false;
+      c.push(Number(v));
+    }
+    if (lados.some(l => !l)) return false;
+    for (let i = 1; i < n; i++) if (c[i] <= c[i - 1]) return false;
+    const holgura = Number(refs.holgura.value) || 0;
+    const minimos = [];
+    for (let i = 1; i < n; i++) minimos.push(huecoNecesarioOnyx(lados[i - 1], lados[i], S, holgura));
+    const total = c[n - 1] - c[0];
+    if (minimos.reduce((a, m) => a + Math.ceil(m), 0) > total) return false;
+    const huecos = repartirHuecosEquidistantes(total, minimos);
+    let pos = c[0];
+    for (let i = 1; i < n - 1; i++) { pos += huecos[i - 1]; document.getElementById('cota' + (i + 1)).value = pos; }
+    return true;
   };
   // Reparte 'total' entre los huecos lo más a partes iguales posible sin bajar de ningún
   // mínimo: hueco = max(mínimo, t), con t tal que la suma cuadre (en mm enteros).
@@ -2712,6 +2744,7 @@ const App = (() => {
     });
     refs.btnSugerir.addEventListener('click', sugerirSoportes);
     refs.btnCalcularBrazos.addEventListener('click', calcularPosicionBrazos);
+    refs.holgura.addEventListener('input', () => { if (recolocarInteriores()) scheduleRender(); });
     refs.btnPrint.addEventListener('click', () => window.print());
     refs.btnPrintTaller.addEventListener('click', printTaller);
     refs.btnPDF.addEventListener('click', exportPDF);
@@ -2880,10 +2913,11 @@ const App = (() => {
       const necManual = minManualOnyx(a.lado, b.lado);
       const necPlegado = nec - holgura;
       const porManual = necManual > necPlegado;
-      nec = Math.max(necPlegado, necManual) + holgura;
+      const holguraHueco = (aInv && bInv) ? holgura : 0;
+      nec = Math.max(necPlegado, necManual) + holguraHueco;
 
       if (sep < nec) {
-        colisionesPlegado.push(`${labels.errColisionPlegado} P${a.n}–P${b.n} (${tipo}): gap ${sep}mm < ${Math.round(nec)}mm (Brazo Onyx: ${brazoRep}mm${porManual ? ` · mín. manual Onyx ${aInv && bInv ? 'B' : 'C'}min ${Math.round(necManual)}mm` : ''}${holgura ? ` + holgura ${holgura}mm` : ''}).`);
+        colisionesPlegado.push(`${labels.errColisionPlegado} P${a.n}–P${b.n} (${tipo}): gap ${sep}mm < ${Math.round(nec)}mm (Brazo Onyx: ${brazoRep}mm${porManual ? ` · mín. manual Onyx ${aInv && bInv ? 'B' : 'C'}min ${Math.round(necManual)}mm` : ''}${holguraHueco ? ` + holgura ${holguraHueco}mm` : ''}).`);
         
         const bOrigA = brazos.find(x => x.n === a.n);
         const bOrigB = brazos.find(x => x.n === b.n);
