@@ -2794,13 +2794,18 @@ const App = (() => {
       document.getElementById('cota' + b.n)?.classList.remove('error');
     });
 
-    // Separación mínima entre soportes brazo contiguos (centro a centro) del manual de
-    // fabricación KÜADBOX-400 REV 2.2 (apdos. 3.4–3.6), que lleva los mismos brazos Onyx:
-    // enfrentados (Izq→Der) S + 360; mismo lado S/2 + 250; divergentes no contemplado.
+    // Separación mínima entre soportes brazo contiguos (centro a centro), extrapolada del
+    // manual de fabricación KÜADBOX-400 REV 2.2 (apdos. 3.4–3.6), que lleva los mismos
+    // brazos Onyx: enfrentados (Izq→Der) S + 360; mismo lado S/2 + 250; divergentes no
+    // contemplado. El soporte brazo de KÜADBOX mide 54 mm y el de MODULBOX 60 mm: se mantiene
+    // la misma holgura entre bordes, así que se suman 3 mm por cada uno de los dos soportes
+    // del hueco (+6 mm, confirmado por Andrés, 25-sep-2026).
     // Solo se usa para el aviso de colisión (junto al cálculo de plegado, el mayor de los
     // dos); el cálculo de posiciones sigue con las tablas de Llaza de este modelo.
+    const AJUSTE_SOPORTE_MODULBOX = (60 - 54) / 2 * 2;
     const minManualOnyx = (ladoA, ladoB) =>
-      (ladoA === 'izq' && ladoB === 'der') ? S + 360 : (ladoA === ladoB ? S / 2 + 250 : 0);
+      (ladoA === 'izq' && ladoB === 'der') ? S + 360 + AJUSTE_SOPORTE_MODULBOX
+      : (ladoA === ladoB ? S / 2 + 250 + AJUSTE_SOPORTE_MODULBOX : 0);
     let colisionesPlegado = [];
     let medidasCodo = [];
     let brazosOrdenados = [...brazos].sort((a, b) => a.cota - b.cota);
