@@ -38,6 +38,7 @@
     header { background: var(--primary); color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
     header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
     header span { font-size: 0.85rem; opacity: 0.9; display: block; margin-top: 2px; }
+    header svg { width: 46px; height: 34px; flex-shrink: 0; }
 
     .lang-switcher { margin-left: auto; display: flex; gap: 8px; align-items: center; }
     .lang-btn { margin-top: 0; width: auto; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s; }
@@ -1143,13 +1144,29 @@ const App = (() => {
   };
   const sugerirNumInferior = (L_mm) => lookupPerfil(INFERIOR_COUNT, L_mm);
 
-  // Reparte "n" soportes a partes iguales a lo largo de la línea (n+1 tramos iguales).
-  const posicionesEquidistantes = (L_mm, n) => {
+  // Reparte "n" soportes con la misma distancia entre ellos: (línea − tapas) / (n+1)
+  // huecos, medidos desde el final de la tapa izquierda.
+  const posicionesEquidistantes = (L_mm, n, tapa = 0) => {
     if (n <= 0) return [];
-    const segment = L_mm / (n + 1);
+    const segment = (L_mm - 2 * tapa) / (n + 1);
     const positions = [];
-    for (let k = 1; k <= n; k++) positions.push(Math.round(k * segment));
+    for (let k = 1; k <= n; k++) positions.push(Math.round(tapa + k * segment));
     return positions;
+  };
+
+  // Un soporte brazo "cae encima" de un soporte de Tejadillo/Lira si sus centros están a
+  // menos de esto. Al calcular brazos, el interior que choca se aparta esta misma
+  // distancia hacia el lado de su mano (Izq hacia la izquierda, Der hacia la derecha).
+  const DESPLAZ_BRAZO_PERFIL = 30;
+  const chocaConPerfil = (cota, perfilPos) => perfilPos.some(p => Math.abs(p - cota) < DESPLAZ_BRAZO_PERFIL);
+
+  // Cotas de los soportes de Tejadillo, Lira Posterior y Lira/Cofre (mismo cálculo que el plano).
+  const posicionesSoportesTejadilloLira = (L) => {
+    const tapa = Number(refs.grosorTapa.value) || 0;
+    const sugerido = sugerirNumLira(L, refs.maquina.value, 'SI');
+    return [[refs.perfilTejadillo, refs.numTejadillo], [refs.perfilLiraPosterior, refs.numLiraPosterior], [refs.perfilLiraCofre, refs.numLiraCofre]]
+      .filter(([sel]) => sel.value === 'SI')
+      .flatMap(([, num]) => posicionesEquidistantes(L, num.value !== '' ? Math.max(0, +num.value) : sugerido, tapa));
   };
 
   const i18n = {
@@ -2582,7 +2599,12 @@ const App = (() => {
     const hasExisting = ladoArray.some((_, idx) => document.getElementById('cota' + (idx + 1))?.value);
     if (hasExisting && !confirm(labels.confirmCalcularBrazos)) return;
 
+    const perfilPos = posicionesSoportesTejadilloLira(L);
     result.positions.forEach((pos, idx) => {
+      const interior = idx > 0 && idx < result.positions.length - 1;
+      if (interior && chocaConPerfil(pos, perfilPos)) {
+        pos += ladoArray[idx] === 'izq' ? -DESPLAZ_BRAZO_PERFIL : DESPLAZ_BRAZO_PERFIL;
+      }
       const cotaEl = document.getElementById('cota' + (idx + 1));
       if (cotaEl) cotaEl.value = pos;
     });
@@ -2894,7 +2916,7 @@ const App = (() => {
       const sugerido = (activo && L > 0) ? sugeridoFn() : 0;
       numRef.placeholder = sugerido ? `${t3('Sugerido', 'Suggested', 'Suggéré', 'Vorschlag', 'Suggerito', 'Sugerido')}: ${sugerido}` : '';
       const n = activo ? (numRef.value !== '' ? Math.max(0, +numRef.value) : sugerido) : 0;
-      const posiciones = (activo && L > 0) ? posicionesEquidistantes(L, n) : [];
+      const posiciones = (activo && L > 0) ? posicionesEquidistantes(L, n, grosorTapa) : [];
       return { activo, n, posiciones };
     };
 
@@ -2904,6 +2926,9 @@ const App = (() => {
     const perfilInf     = calcPerfil(refs.perfilInferior, refs.numInferior, () => sugerirNumInferior(L));
 
     const { errores, warnings } = validateInputs(L, brazos);
+
+    const perfilPosChoque = [...tejadillo.posiciones, ...liraPosterior.posiciones, ...liraCofre.posiciones];
+    const choquesPerfil = brazos.filter(b => chocaConPerfil(b.cota, perfilPosChoque));
 
     brazos.forEach(b => {
       document.getElementById('cota' + b.n)?.classList.remove('error');
@@ -2984,6 +3009,13 @@ const App = (() => {
 
     let alertHtml = '';
     if (errores.length) alertHtml += `<div class="alert danger">${errores.map(e=>`<div>⚠ ${e}</div>`).join('')}</div>`;
+    if (choquesPerfil.length) alertHtml += `<div class="alert danger">${choquesPerfil.map(b => `<div>⚠ P${b.n} (${b.cota} mm): ${t3(
+      'el soporte brazo cae encima de un soporte de tejadillo/lira. Apártalo 30 mm hacia el lado de su mano.',
+      'the arm support falls on a canopy/lyre support. Move it 30 mm towards its own side.',
+      'le support de bras tombe sur un support d\'auvent/lyre. Décalez-le de 30 mm vers son côté.',
+      'die Armkonsole fällt auf eine Vordach-/Lyra-Konsole. Um 30 mm zur eigenen Seite verschieben.',
+      'il supporto braccio cade su un supporto tettuccio/lira. Spostalo di 30 mm verso il suo lato.',
+      'o suporte do braço cai sobre um suporte de telhado/lira. Afaste-o 30 mm para o seu lado.')}</div>`).join('')}</div>`;
     if (colisionesPlegado.length) alertHtml += `<div class="alert danger">${colisionesPlegado.map(c=>`<div>${c}</div>`).join('')}</div>`;
     if (overlapError) alertHtml += `<div class="alert danger"><div>${overlapError}</div></div>`;
     if (warnings.length && !overlapError && !colisionesPlegado.length) alertHtml += `<div class="alert info">${warnings.map(w=>`<div>ℹ ${w}</div>`).join('')}</div>`;
