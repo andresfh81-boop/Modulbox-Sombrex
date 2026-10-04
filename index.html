@@ -449,6 +449,15 @@
           <input id="numInferior" type="number" min="0" placeholder="Sugerido">
         </div>
       </div>
+
+      <!-- Cotas editables: vacío = reparto equidistante; con cotas, mandan esas (las liras siguen al tejadillo). -->
+      <label id="lblCotasTejadillo" for="cotasTejadillo" style="margin-top:12px;">📍 Cotas soportes Tejadillo / Liras (mm) — vacío = equidistantes</label>
+      <textarea id="cotasTejadillo" placeholder="Automático: equidistantes"></textarea>
+      <button id="btnEditarTejadillo" class="secondary" type="button" style="margin-top:8px;">✏️ Editar cotas</button>
+
+      <label id="lblCotasInferior" for="cotasInferior" style="margin-top:12px;">📍 Cotas soportes Perfil Inferior (mm) — vacío = equidistantes</label>
+      <textarea id="cotasInferior" placeholder="Automático: equidistantes"></textarea>
+      <button id="btnEditarInferior" class="secondary" type="button" style="margin-top:8px;">✏️ Editar cotas</button>
     </div>
 
     <div class="btn-group vista-toggle no-print">
@@ -1173,6 +1182,9 @@ const App = (() => {
 
   // Cotas de los soportes de Tejadillo, Lira Posterior y Lira/Cofre (mismo cálculo que el plano).
   const posicionesSoportesTejadilloLira = (L) => {
+    const algunoActivo = [refs.perfilTejadillo, refs.perfilLiraPosterior, refs.perfilLiraCofre].some(sel => sel.value === 'SI');
+    const manual = parseCotas(refs.cotasTejadillo.value, L);
+    if (algunoActivo && manual.length) return manual;
     const tapa = Number(refs.grosorTapa.value) || 0;
     const sugerido = sugerirNumLira(L, refs.maquina.value, 'SI');
     return [[refs.perfilTejadillo, refs.numTejadillo], [refs.perfilLiraPosterior, refs.numLiraPosterior], [refs.perfilLiraCofre, refs.numLiraCofre]]
@@ -1975,6 +1987,10 @@ const App = (() => {
     numLiraCofre:        document.getElementById('numLiraCofre'),
     perfilInferior:      document.getElementById('perfilInferior'),
     numInferior:         document.getElementById('numInferior'),
+    cotasTejadillo:      document.getElementById('cotasTejadillo'),
+    cotasInferior:       document.getElementById('cotasInferior'),
+    btnEditarTejadillo:  document.getElementById('btnEditarTejadillo'),
+    btnEditarInferior:   document.getElementById('btnEditarInferior'),
     brazosContainer: document.getElementById('brazosContainer'),
     alertOut:        document.getElementById('alertOut'),
     planoOut:        document.getElementById('planoOut'),
@@ -2027,6 +2043,8 @@ const App = (() => {
       numLiraCofre: refs.numLiraCofre.value,
       perfilInferior: refs.perfilInferior.value,
       numInferior: refs.numInferior.value,
+      cotasTejadillo: refs.cotasTejadillo.value,
+      cotasInferior: refs.cotasInferior.value,
       observaciones: savedNotesContent,
       brazosData: []
     };
@@ -2064,6 +2082,8 @@ const App = (() => {
     refs.numLiraCofre.value = state.numLiraCofre || '';
     refs.perfilInferior.value = state.perfilInferior || 'NO';
     refs.numInferior.value = state.numInferior || '';
+    refs.cotasTejadillo.value = state.cotasTejadillo || '';
+    refs.cotasInferior.value = state.cotasInferior || '';
     savedNotesContent     = state.observaciones || '';
 
     updateBCAvailability();
@@ -2081,6 +2101,24 @@ const App = (() => {
       fijarLadosExtremos();
     }
     ignoreInput = false;
+  };
+
+  // "Editar cotas": copia al campo el reparto automático para cambiar solo la que haga falta.
+  let repartoAutoPerfil = { tejadillo: [], inferior: [] };
+  const editarCotasPerfil = (cotasRef, clave) => {
+    const auto = repartoAutoPerfil[clave];
+    if (!auto.length) return;
+    if (cotasRef.value.trim() && !confirm(t3(
+      'Se sustituirán las cotas escritas por el reparto automático. ¿Continuar?',
+      'The positions entered will be replaced by the automatic layout. Continue?',
+      'Les cotes saisies seront remplacées par la répartition automatique. Continuer ?',
+      'Die eingegebenen Positionen werden durch die automatische Verteilung ersetzt. Fortfahren?',
+      'Le quote inserite saranno sostituite dalla distribuzione automatica. Continuare?',
+      'As cotas introduzidas serão substituídas pela distribuição automática. Continuar?'))) return;
+    cotasRef.value = auto.join(', ');
+    cotasRef.focus();
+    render();
+    saveState();
   };
 
   let renderTimeout;
@@ -2193,6 +2231,22 @@ const App = (() => {
     document.getElementById('secSoportes').textContent = labels.secSoportes;
     document.getElementById('lblCasPared').textContent = labels.lblCasPared;
     refs.cotasPared.placeholder = labels.phCasPared;
+    document.getElementById('lblCotasTejadillo').textContent = t3(
+      '📍 Cotas soportes Tejadillo / Liras (mm) — vacío = equidistantes',
+      '📍 Canopy / lyre bracket positions (mm) — empty = evenly spaced',
+      '📍 Cotes supports auvent / lyres (mm) — vide = équidistants',
+      '📍 Positionen Vordach-/Lyra-Stützen (mm) — leer = gleichmäßig verteilt',
+      '📍 Quote staffe tettuccio / lire (mm) — vuoto = equidistanti',
+      '📍 Cotas suportes telhadinho / liras (mm) — vazio = equidistantes');
+    document.getElementById('lblCotasInferior').textContent = t3(
+      '📍 Cotas soportes Perfil Inferior (mm) — vacío = equidistantes',
+      '📍 Lower profile bracket positions (mm) — empty = evenly spaced',
+      '📍 Cotes supports profilé inférieur (mm) — vide = équidistants',
+      '📍 Positionen Stützen unteres Profil (mm) — leer = gleichmäßig verteilt',
+      '📍 Quote staffe profilo inferiore (mm) — vuoto = equidistanti',
+      '📍 Cotas suportes perfil inferior (mm) — vazio = equidistantes');
+    refs.cotasTejadillo.placeholder = refs.cotasInferior.placeholder = t3('Automático: equidistantes', 'Automatic: evenly spaced', 'Automatique : équidistants', 'Automatisch: gleichmäßig verteilt', 'Automatico: equidistanti', 'Automático: equidistantes');
+    refs.btnEditarTejadillo.textContent = refs.btnEditarInferior.textContent = t3('✏️ Editar cotas', '✏️ Edit positions', '✏️ Modifier les cotes', '✏️ Positionen bearbeiten', '✏️ Modifica quote', '✏️ Editar cotas');
     document.getElementById('lblNumBrazos').textContent = labels.lblNumBrazos;
     document.getElementById('lblBC').textContent = labels.lblBC;
     document.getElementById('lblBCnota').textContent = labels.lblBCnota;
@@ -2615,7 +2669,7 @@ const App = (() => {
       const interior = idx > 0 && idx < result.positions.length - 1;
       if (interior && chocaConPerfil(pos, perfilPos)) {
         const movido = pos + (ladoArray[idx] === 'izq' ? -DESPLAZ_BRAZO_PERFIL : DESPLAZ_BRAZO_PERFIL);
-        // Si apartándolo cae encima de otro soporte, se deja: el plano añadirá un soporte de tejadillo.
+        // Si apartándolo cae encima de otro soporte, se deja y el plano avisa de la colisión.
         if (!chocaConPerfil(movido, perfilPos)) pos = movido;
       }
       const cotaEl = document.getElementById('cota' + (idx + 1));
@@ -2785,7 +2839,7 @@ const App = (() => {
 
   const init = () => {
     const inputs = [refs.pedido, refs.cliente, refs.modelo, refs.maquina, refs.linea, refs.salida, refs.ladoMotor, refs.holgura, refs.grosorTapa, refs.cotasPared, refs.brazosCruzados,
-      refs.perfilTejadillo, refs.numTejadillo, refs.perfilLiraPosterior, refs.numLiraPosterior, refs.perfilLiraCofre, refs.numLiraCofre, refs.perfilInferior, refs.numInferior];
+      refs.perfilTejadillo, refs.numTejadillo, refs.perfilLiraPosterior, refs.numLiraPosterior, refs.perfilLiraCofre, refs.numLiraCofre, refs.perfilInferior, refs.numInferior, refs.cotasTejadillo, refs.cotasInferior];
     inputs.forEach(el => {
       el.addEventListener('input', scheduleRender);
       if(el.tagName === 'SELECT') {
@@ -2812,6 +2866,8 @@ const App = (() => {
       procesarPresupuesto(f);
     });
     refs.btnSugerir.addEventListener('click', sugerirSoportes);
+    refs.btnEditarTejadillo.addEventListener('click', () => editarCotasPerfil(refs.cotasTejadillo, 'tejadillo'));
+    refs.btnEditarInferior.addEventListener('click', () => editarCotasPerfil(refs.cotasInferior, 'inferior'));
     refs.btnCalcularBrazos.addEventListener('click', calcularPosicionBrazos);
     refs.holgura.addEventListener('input', () => { if (recolocarInteriores()) scheduleRender(); });
     refs.btnPrint.addEventListener('click', () => window.print());
@@ -2867,8 +2923,8 @@ const App = (() => {
     return { errores, warnings };
   };
 
-  const parseParedes = (L) => {
-    const text = refs.cotasPared.value.trim();
+  const parseCotas = (text, L) => {
+    text = text.trim();
     if (!text) return [];
     return text
       .split(/[,\n\s]+/)
@@ -2877,6 +2933,7 @@ const App = (() => {
       .filter(n => !isNaN(n) && n >= 0 && n <= L)
       .sort((a, b) => a - b);
   };
+  const parseParedes = (L) => parseCotas(refs.cotasPared.value, L);
 
   const parseBrazos = (L) => {
     const n = +refs.numBrazos.value || 0;
@@ -2924,19 +2981,25 @@ const App = (() => {
 
     // Tejadillo, Lira Posterior y Lira/Cofre comparten la misma tabla de cantidad
     // (manual 1.5); Perfil Inferior usa su propia tabla y es exclusivo de FullBOX.
-    const calcPerfil = (selectRef, numRef, sugeridoFn) => {
+    // "auto" = reparto equidistante; si el campo de cotas tiene cotas, mandan esas.
+    const calcPerfil = (selectRef, numRef, sugeridoFn, cotasRef) => {
       const activo = selectRef.value === 'SI';
       const sugerido = (activo && L > 0) ? sugeridoFn() : 0;
       numRef.placeholder = sugerido ? `${t3('Sugerido', 'Suggested', 'Suggéré', 'Vorschlag', 'Suggerito', 'Sugerido')}: ${sugerido}` : '';
       const n = activo ? (numRef.value !== '' ? Math.max(0, +numRef.value) : sugerido) : 0;
-      const posiciones = (activo && L > 0) ? posicionesEquidistantes(L, n, grosorTapa) : [];
-      return { activo, n, posiciones };
+      const auto = (activo && L > 0) ? posicionesEquidistantes(L, n, grosorTapa) : [];
+      const manual = activo ? parseCotas(cotasRef.value, L) : [];
+      return { activo, n, posiciones: manual.length ? manual : auto, auto };
     };
 
-    const tejadillo     = calcPerfil(refs.perfilTejadillo, refs.numTejadillo, () => sugerirNumLira(L, maquina, 'SI'));
-    const liraPosterior = calcPerfil(refs.perfilLiraPosterior, refs.numLiraPosterior, () => sugerirNumLira(L, maquina, 'SI'));
-    const liraCofre     = calcPerfil(refs.perfilLiraCofre, refs.numLiraCofre, () => sugerirNumLira(L, maquina, 'SI'));
-    const perfilInf     = calcPerfil(refs.perfilInferior, refs.numInferior, () => sugerirNumInferior(L));
+    const tejadillo     = calcPerfil(refs.perfilTejadillo, refs.numTejadillo, () => sugerirNumLira(L, maquina, 'SI'), refs.cotasTejadillo);
+    const liraPosterior = calcPerfil(refs.perfilLiraPosterior, refs.numLiraPosterior, () => sugerirNumLira(L, maquina, 'SI'), refs.cotasTejadillo);
+    const liraCofre     = calcPerfil(refs.perfilLiraCofre, refs.numLiraCofre, () => sugerirNumLira(L, maquina, 'SI'), refs.cotasTejadillo);
+    const perfilInf     = calcPerfil(refs.perfilInferior, refs.numInferior, () => sugerirNumInferior(L), refs.cotasInferior);
+    // Para el botón "Editar cotas": el reparto automático actual de cada campo.
+    repartoAutoPerfil = { tejadillo: [tejadillo, liraPosterior, liraCofre].find(pf => pf.activo)?.auto || [], inferior: perfilInf.auto };
+    refs.cotasTejadillo.disabled = refs.btnEditarTejadillo.disabled = ![tejadillo, liraPosterior, liraCofre].some(pf => pf.activo);
+    refs.cotasInferior.disabled = refs.btnEditarInferior.disabled = !perfilInf.activo;
 
     const { errores, warnings } = validateInputs(L, brazos);
 
