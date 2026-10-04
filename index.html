@@ -133,6 +133,16 @@
     .summary-table th { text-align: left; padding: 6px 10px; border: 1px solid var(--border-color); background: #f3f4f6; font-weight: 600; color: var(--text-muted); }
     .summary-table td { padding: 6px 10px; border: 1px solid var(--border-color); }
     .summary-table tr:hover td { background: #fafafa; }
+    /* Colisiones entre soportes: las marcas (⚠, filas en rojo, halos en el plano) solo en la
+       vista y la copia de Taller; nunca en la copia del cliente ni en PDF/PNG (ignoreElements). */
+    .marca-colision { display: none; }
+    body.view-taller .marca-colision, body.print-taller .marca-colision { display: inline; }
+    body.view-taller .summary-table tr.fila-colision td, body.print-taller .summary-table tr.fila-colision td { background: #fee2e2; color: #991b1b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .alert.aviso-colision { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @media print {
+      body:not(.print-taller) .aviso-colision, body:not(.print-taller) .marca-colision { display: none !important; }
+      body:not(.print-taller) .summary-table tr.fila-colision td { background: none !important; color: inherit !important; }
+    }
 
     .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
     .badge-pared  { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
@@ -1154,9 +1164,10 @@ const App = (() => {
     return positions;
   };
 
-  // Un soporte brazo "cae encima" de un soporte de Tejadillo/Lira si sus centros están a
-  // menos de esto. Al calcular brazos, el interior que choca se aparta esta misma
-  // distancia hacia el lado de su mano (Izq hacia la izquierda, Der hacia la derecha).
+  // Dos soportes "chocan" si sus centros están a menos de esto. Vale para Tejadillo/Liras
+  // e Inferior contra soportes brazo y de pared. Al calcular brazos, el interior que choca
+  // con un soporte de Tejadillo/Lira se aparta esta misma distancia hacia el lado de su
+  // mano (Izq hacia la izquierda, Der hacia la derecha), salvo que así caiga encima de otro.
   const DESPLAZ_BRAZO_PERFIL = 30;
   const chocaConPerfil = (cota, perfilPos) => perfilPos.some(p => Math.abs(p - cota) < DESPLAZ_BRAZO_PERFIL);
 
@@ -2603,7 +2614,9 @@ const App = (() => {
     result.positions.forEach((pos, idx) => {
       const interior = idx > 0 && idx < result.positions.length - 1;
       if (interior && chocaConPerfil(pos, perfilPos)) {
-        pos += ladoArray[idx] === 'izq' ? -DESPLAZ_BRAZO_PERFIL : DESPLAZ_BRAZO_PERFIL;
+        const movido = pos + (ladoArray[idx] === 'izq' ? -DESPLAZ_BRAZO_PERFIL : DESPLAZ_BRAZO_PERFIL);
+        // Si apartándolo cae encima de otro soporte, se deja: el plano añadirá un soporte de tejadillo.
+        if (!chocaConPerfil(movido, perfilPos)) pos = movido;
       }
       const cotaEl = document.getElementById('cota' + (idx + 1));
       if (cotaEl) cotaEl.value = pos;
@@ -2693,7 +2706,7 @@ const App = (() => {
       return;
     }
     const target = refs.planoOut;
-    html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', ignoreElements: el => el.classList && (el.classList.contains('col-taller') || el.classList.contains('medida-control')) }).then(canvas => {
+    html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', ignoreElements: el => el.classList && (el.classList.contains('col-taller') || el.classList.contains('medida-control') || el.classList.contains('marca-colision')) }).then(canvas => {
       const link = document.createElement('a');
       link.download = `Modulbox_${sanitizeFilename(refs.pedido.value || 'Plan')}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -2711,7 +2724,7 @@ const App = (() => {
       return;
     }
     const target = refs.planoOut;
-    html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', ignoreElements: el => el.classList && (el.classList.contains('col-taller') || el.classList.contains('medida-control')) }).then(canvas => {
+    html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', ignoreElements: el => el.classList && (el.classList.contains('col-taller') || el.classList.contains('medida-control') || el.classList.contains('marca-colision')) }).then(canvas => {
       const { jsPDF } = window.jspdf;
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
@@ -2927,8 +2940,29 @@ const App = (() => {
 
     const { errores, warnings } = validateInputs(L, brazos);
 
-    const perfilPosChoque = [...tejadillo.posiciones, ...liraPosterior.posiciones, ...liraCofre.posiciones];
-    const choquesPerfil = brazos.filter(b => chocaConPerfil(b.cota, perfilPosChoque));
+    // Aviso de colisión (criterio de Andrés, 04-oct-2026): dos soportes a menos de 30 mm entre
+    // centros. Se comprueban soportes brazo y de pared entre sí (todos con todos), y cada
+    // soporte de Tejadillo, Lira Posterior, Lira/Cofre e Inferior contra todos ellos. Entre
+    // Tejadillo, Liras e Inferior no se avisa: si coinciden se ponen uno al lado del otro.
+    const soportesFijos = [
+      ...brazos.map(b => ({ cota: b.cota, nombre: `P${b.n}${ladoLetra(b.lado)}` })),
+      ...paredes.map((c, idx) => ({ cota: c, nombre: `SP${idx + 1}` })),
+    ];
+    const soportesPerfil = [[tejadillo, 'T'], [liraPosterior, 'LP'], [liraCofre, 'LC'], [perfilInf, 'I']]
+      .flatMap(([perfil, prefix]) => perfil.posiciones.map((c, idx) => ({ cota: c, nombre: `${prefix}${idx + 1}` })));
+    // El aviso da la distancia entre centros (no las cotas), porque la copia de taller mide
+    // los soportes brazo al borde y sin tapa; en la tabla se marcan las filas que chocan.
+    const choquesPerfil = [];
+    const soportesEnChoque = new Set();
+    const anotarChoque = (a, b) => {
+      choquesPerfil.push(`${a.nombre} ↔ ${b.nombre}: ${Math.abs(a.cota - b.cota)} mm ${t3('entre centros', 'centre to centre', 'entre axes', 'Mittenabstand', 'tra i centri', 'entre centros')}`);
+      soportesEnChoque.add(a.nombre);
+      soportesEnChoque.add(b.nombre);
+    };
+    soportesFijos.forEach((a, i) => {
+      soportesFijos.slice(i + 1).forEach(b => { if (chocaConPerfil(a.cota, [b.cota])) anotarChoque(a, b); });
+      soportesPerfil.forEach(b => { if (chocaConPerfil(a.cota, [b.cota])) anotarChoque(b, a); });
+    });
 
     brazos.forEach(b => {
       document.getElementById('cota' + b.n)?.classList.remove('error');
@@ -3009,13 +3043,13 @@ const App = (() => {
 
     let alertHtml = '';
     if (errores.length) alertHtml += `<div class="alert danger">${errores.map(e=>`<div>⚠ ${e}</div>`).join('')}</div>`;
-    if (choquesPerfil.length) alertHtml += `<div class="alert danger">${choquesPerfil.map(b => `<div>⚠ P${b.n} (${b.cota} mm): ${t3(
-      'el soporte brazo cae encima de un soporte de tejadillo/lira. Apártalo 30 mm hacia el lado de su mano.',
-      'the arm support falls on a canopy/lyre support. Move it 30 mm towards its own side.',
-      'le support de bras tombe sur un support d\'auvent/lyre. Décalez-le de 30 mm vers son côté.',
-      'die Armkonsole fällt auf eine Vordach-/Lyra-Konsole. Um 30 mm zur eigenen Seite verschieben.',
-      'il supporto braccio cade su un supporto tettuccio/lira. Spostalo di 30 mm verso il suo lato.',
-      'o suporte do braço cai sobre um suporte de telhado/lira. Afaste-o 30 mm para o seu lado.')}</div>`).join('')}</div>`;
+    if (choquesPerfil.length) alertHtml += `<div class="alert danger aviso-colision"><div>⚠ <b>${t3(
+      'COLISIÓN: soportes a menos de 30 mm entre centros (marcados con ⚠ en la vista/copia de Taller). Desplázalos un poco en el taller:',
+      'CLASH: supports less than 30 mm apart, centre to centre (marked ⚠ in the Workshop view/copy). Shift them slightly in the workshop:',
+      'COLLISION : supports à moins de 30 mm entre axes (marqués ⚠ dans la vue/copie Atelier). Décalez-les légèrement à l\'atelier :',
+      'KOLLISION: Konsolen mit weniger als 30 mm Mittenabstand (in der Werkstatt-Ansicht/-Kopie mit ⚠ markiert). In der Werkstatt etwas verschieben:',
+      'COLLISIONE: supporti a meno di 30 mm tra i centri (segnati con ⚠ nella vista/copia Officina). Spostali leggermente in officina:',
+      'COLISÃO: suportes a menos de 30 mm entre centros (marcados com ⚠ na vista/cópia Oficina). Desloque-os um pouco na oficina:')}</b></div>${choquesPerfil.map(c => `<div>· ${c}</div>`).join('')}</div>`;
     if (colisionesPlegado.length) alertHtml += `<div class="alert danger">${colisionesPlegado.map(c=>`<div>${c}</div>`).join('')}</div>`;
     if (overlapError) alertHtml += `<div class="alert danger"><div>${overlapError}</div></div>`;
     if (warnings.length && !overlapError && !colisionesPlegado.length) alertHtml += `<div class="alert info">${warnings.map(w=>`<div>ℹ ${w}</div>`).join('')}</div>`;
@@ -3101,10 +3135,10 @@ const App = (() => {
     });
 
     const allCotaX = [
-      ...listaParedesConEscala.map(p => ({ x: p.x, label: `${p.cota}`, color: '#2563eb', tipo: `${labels.badgePared} SP${p.id}`, lado: null, esPared: true })),
+      ...listaParedesConEscala.map(p => ({ x: p.x, label: `${p.cota}`, color: '#2563eb', tipo: `${labels.badgePared} SP${p.id}`, clave: `SP${p.id}`, lado: null, esPared: true })),
       ...listaBrazosConEscala.map(b => {
         const letra = ladoLetra(b.bObj.lado);
-        return { x: b.x, label: `${b.cota}`, color: b.bObj.lado === 'der' ? '#10b981' : '#ef4444', tipo: `${b.bObj.lado === 'izq' ? labels.badgeBrazoI : labels.badgeBrazoD} P${b.bObj.n}${letra}`, lado: b.bObj.lado, esPared: false };
+        return { x: b.x, label: `${b.cota}`, color: b.bObj.lado === 'der' ? '#10b981' : '#ef4444', tipo: `${b.bObj.lado === 'izq' ? labels.badgeBrazoI : labels.badgeBrazoD} P${b.bObj.n}${letra}`, clave: `P${b.bObj.n}${letra}`, lado: b.bObj.lado, esPared: false };
       })
     ].sort((a, b) => a.x - b.x);
 
@@ -3279,6 +3313,7 @@ const App = (() => {
       imageElements += `
         <polyline points="${item.x},${yBar + 8} ${item.x},${targetY}" stroke="${item.color}" stroke-width="1.2" fill="none" />
         <circle cx="${item.x}" cy="${targetY}" r="2.5" fill="${item.color}" />
+        ${soportesEnChoque.has(item.clave) ? `<rect class="marca-colision" x="${item.x - 32}" y="${targetY - 15}" width="64" height="25" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>` : ''}
         <rect x="${item.x - 28}" y="${targetY - 11}" width="56" height="17" rx="4" fill="#ffffff" stroke="${item.color}" stroke-width="1.5"/>
         <text x="${item.x}" y="${targetY + 1}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="${item.color}">${item.label}</text>
       `;
@@ -3298,6 +3333,7 @@ const App = (() => {
         const x = marginLeft + cota * scale;
         imageElements += `
           <line x1="${x}" y1="${yBar + 8}" x2="${x}" y2="${rowY - 8}" stroke="${row.color}" stroke-width="1" stroke-dasharray="2 2"/>
+          ${soportesEnChoque.has(row.prefix + (idx + 1)) ? `<circle class="marca-colision" cx="${x}" cy="${rowY}" r="8" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>` : ''}
           <circle cx="${x}" cy="${rowY}" r="4" fill="#ffffff" stroke="${row.color}" stroke-width="1.5"/>
           <text x="${x}" y="${rowY + 3}" text-anchor="middle" font-size="8" font-weight="900" fill="${row.color}">${row.prefix}${idx+1}</text>
         `;
@@ -3384,8 +3420,8 @@ const App = (() => {
       }
       // La versión cliente solo lista soportes de PARED; el resto va marcado como taller-only.
       tableRows += `
-        <tr${item.esPared ? '' : ' class="taller-only"'}>
-          <td><span class="badge ${badgeClass}">${item.tipo}</span></td>
+        <tr class="${item.esPared ? '' : 'taller-only'}${soportesEnChoque.has(item.clave) ? ' fila-colision' : ''}">
+          <td>${soportesEnChoque.has(item.clave) ? '<span class="marca-colision">⚠ </span>' : ''}<span class="badge ${badgeClass}">${item.tipo}</span></td>
           <td class="col-cliente"><b>${item.label} mm</b></td>
           ${tallerTd(cotaTallerSoporte(Number(item.label), item.lado))}
           <td>${labels.descSoporte}</td>
@@ -3402,8 +3438,8 @@ const App = (() => {
       grupo.posiciones.forEach((cota, idx) => {
         // Soportes de tejadillo/lira/cofre/perfil inferior: solo en la copia de taller.
         tableRows += `
-          <tr class="taller-only">
-            <td><span class="badge ${grupo.badgeClass}">${grupo.label} ${grupo.prefix}${idx+1}</span></td>
+          <tr class="taller-only${soportesEnChoque.has(grupo.prefix + (idx + 1)) ? ' fila-colision' : ''}">
+            <td>${soportesEnChoque.has(grupo.prefix + (idx + 1)) ? '<span class="marca-colision">⚠ </span>' : ''}<span class="badge ${grupo.badgeClass}">${grupo.label} ${grupo.prefix}${idx+1}</span></td>
             <td class="col-cliente"><b>${cota} mm</b></td>
             ${tallerTd(cotaTallerSoporte(cota, null))}
             <td>${labels.descSoporte}</td>
