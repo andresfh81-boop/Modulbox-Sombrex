@@ -2050,6 +2050,7 @@ const App = (() => {
         if (ladoEl) ladoEl.value = b.lado;
         if (cotaEl) cotaEl.value = b.cota;
       });
+      fijarLadosExtremos();
     }
     ignoreInput = false;
   };
@@ -2084,6 +2085,16 @@ const App = (() => {
     setTimeout(() => notificationEl.classList.remove('show'), 2000);
   };
 
+  // El primer brazo siempre es izquierdo y el último derecho; solo los interiores eligen mano.
+  const fijarLadosExtremos = () => {
+    const n = +refs.numBrazos.value || 0;
+    if (n < 2) return;
+    const primero = document.getElementById('lado1');
+    const ultimo = document.getElementById('lado' + n);
+    if (primero) primero.value = 'izq';
+    if (ultimo) ultimo.value = 'der';
+  };
+
   const buildBrazosUI = (triggerRender = true) => {
     const v = refs.numBrazos.value;
     refs.brazosContainer.innerHTML = '';
@@ -2100,7 +2111,7 @@ const App = (() => {
       html += `
         <div class="brazo-item">
           <label>${labels.brazoLabel} ${i}</label>
-          <select id="lado${i}" class="brazo-input">
+          <select id="lado${i}" class="brazo-input"${i === 1 || i === n ? ' disabled' : ''}>
             <option value="">${labels.brazoSelect}</option>
             <option value="izq">${labels.brazoIzq}</option>
             <option value="der">${labels.brazoDer}</option>
@@ -2109,6 +2120,7 @@ const App = (() => {
         </div>`;
     }
     refs.brazosContainer.innerHTML = html;
+    fijarLadosExtremos();
 
     document.querySelectorAll('.brazo-input').forEach(el => {
       el.addEventListener('input', scheduleRender);
@@ -2212,6 +2224,7 @@ const App = (() => {
         if (document.getElementById(`lado${i}`)) document.getElementById(`lado${i}`).value = b.lado;
         if (document.getElementById(`cota${i}`)) document.getElementById(`cota${i}`).value = b.cota;
       });
+      fijarLadosExtremos();
     }
 
     render();
@@ -3200,6 +3213,24 @@ const App = (() => {
         `;
       }
     });
+
+    // Cota entre soportes brazo, de centro a centro, en una fila por encima de las etiquetas P.
+    const brazosPorCota = [...listaBrazosConEscala].sort((a, b) => a.cota - b.cota);
+    const yCotaBrazos = yBar - 132 - (altoBrazo + 30) * factorEscalaGlobal - 40;
+    for (let i = 0; i < brazosPorCota.length - 1; i++) {
+      const b1 = brazosPorCota[i];
+      const b2 = brazosPorCota[i + 1];
+      const distReal = b2.cota - b1.cota;
+      if (distReal <= 0) continue;
+      const xMedio = (b1.x + b2.x) / 2;
+      imageElements += `
+        <line x1="${b1.x}" y1="${yCotaBrazos - 6}" x2="${b1.x}" y2="${yCotaBrazos + 14}" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3 2"/>
+        <line x1="${b2.x}" y1="${yCotaBrazos - 6}" x2="${b2.x}" y2="${yCotaBrazos + 14}" stroke="#9ca3af" stroke-width="1" stroke-dasharray="3 2"/>
+        <line x1="${b1.x + 2}" y1="${yCotaBrazos}" x2="${b2.x - 2}" y2="${yCotaBrazos}" stroke="#4b5563" stroke-width="1" marker-start="url(#arrowStart)" marker-end="url(#arrowEnd)"/>
+        <rect x="${xMedio - 24}" y="${yCotaBrazos - 9}" width="48" height="15" rx="3" fill="#ffffff" stroke="#4b5563" stroke-width="1"/>
+        <text x="${xMedio}" y="${yCotaBrazos + 2}" text-anchor="middle" font-size="10" font-weight="700" fill="#111827">${distReal}</text>
+      `;
+    }
 
     const xMotor = (motor === 'izq') ? marginLeft : marginLeft + usableWidth;
     imageElements += `
