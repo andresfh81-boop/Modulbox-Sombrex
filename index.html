@@ -736,6 +736,7 @@ const App = (() => {
   const SOPORTE_OFFSET = 120;   // mm, cada soporte de pared respecto al soporte brazo (Tipo A: 1 lado, Tipo B: los 2)
   const SOPORTE_EXTREMO_MAX = 350; // mm, si el soporte más cercano al extremo del tubo supera esto, se añade uno extra
   const SOPORTE_GAP_MAX = 2000;    // mm, ningún hueco entre soportes de pared puede superar esto (líneas largas)
+  const SOPORTE_BORDE_MIN_TALLER = 30; // mm, mínimo desde el borde de la barra sin tapa (cota taller) a un soporte de pared
 
   // Reparte huecos > maxGap añadiendo soportes intermedios equidistantes dentro de ese hueco.
   const rellenarHuecosGrandes = (posicionesOrdenadas, maxGap) => {
@@ -758,7 +759,7 @@ const App = (() => {
   // de los soportes brazo (Tipo A: 1 soporte al interior; Tipo B: 2, uno a cada lado),
   // más la regla de 350mm en los extremos, la placa de unión de cofre (L>7000) y la
   // regla de separación máxima de 2000mm entre soportes.
-  const sugerirPosicionesSoportes = (S_mm, L_mm, tipo, brazosOrdenados) => {
+  const sugerirPosicionesSoportes = (S_mm, L_mm, tipo, brazosOrdenados, tapa = 0) => {
     if (!brazosOrdenados || !brazosOrdenados.length) return { error: 'sin_brazos' };
     let positions = [];
 
@@ -788,6 +789,9 @@ const App = (() => {
     if ((L_mm - positions[last]) > SOPORTE_EXTREMO_MAX) {
       positions.push(Math.round(L_mm - (L_mm - positions[last]) / 2));
     }
+    const minCota = tapa + SOPORTE_BORDE_MIN_TALLER;
+    const maxCota = L_mm - tapa - SOPORTE_BORDE_MIN_TALLER;
+    positions = positions.map(p => Math.min(Math.max(p, minCota), maxCota));
     positions = [...new Set(positions)].sort((a, b) => a - b);
 
     positions = rellenarHuecosGrandes(positions, SOPORTE_GAP_MAX);
@@ -2337,7 +2341,7 @@ const App = (() => {
     brazosOrdenados.sort((a, b) => a.cota - b.cota);
 
     const tipo = S <= 2500 ? 'A' : 'B';
-    const result = sugerirPosicionesSoportes(S, L, tipo, brazosOrdenados);
+    const result = sugerirPosicionesSoportes(S, L, tipo, brazosOrdenados, Number(refs.grosorTapa.value) || 0);
     if (result.error) {
       alert(labels.errSugerirSinDatos);
       return;
@@ -3114,6 +3118,16 @@ const App = (() => {
       'COLLISIONE: supporti a meno di 30 mm tra i centri (segnati con ⚠ nella vista/copia Officina). Spostali leggermente in officina:',
       'COLISÃO: suportes a menos de 30 mm entre centros (marcados com ⚠ na vista/cópia Oficina). Desloque-os um pouco na oficina:')}</b></div>${choquesPerfil.map(c => `<div>· ${c}</div>`).join('')}</div>`;
     if (colisionesPlegado.length) alertHtml += `<div class="alert danger">${colisionesPlegado.map(c=>`<div>${c}</div>`).join('')}</div>`;
+    const paredesPegadasBorde = paredes
+      .map((c, idx) => ({ id: idx + 1, borde: Math.min(c - grosorTapa, L - grosorTapa - c) }))
+      .filter(p => p.borde < SOPORTE_BORDE_MIN_TALLER);
+    if (paredesPegadasBorde.length) alertHtml += `<div class="alert danger"><div>⚠ <b>${t3(
+      `Soporte de pared a menos de ${SOPORTE_BORDE_MIN_TALLER} mm del borde de la barra (cota taller):`,
+      `Wall bracket less than ${SOPORTE_BORDE_MIN_TALLER} mm from the bar edge (workshop dimension):`,
+      `Support mural à moins de ${SOPORTE_BORDE_MIN_TALLER} mm du bord de la barre (cote atelier) :`,
+      `Wandkonsole weniger als ${SOPORTE_BORDE_MIN_TALLER} mm vom Stangenrand (Werkstattmaß):`,
+      `Supporto a parete a meno di ${SOPORTE_BORDE_MIN_TALLER} mm dal bordo della barra (quota officina):`,
+      `Suporte de parede a menos de ${SOPORTE_BORDE_MIN_TALLER} mm do bordo da barra (cota oficina):`)}</b></div>${paredesPegadasBorde.map(p => `<div>· SP${p.id}: ${Math.round(p.borde)} mm</div>`).join('')}</div>`;
     if (overlapError) alertHtml += `<div class="alert danger"><div>${overlapError}</div></div>`;
     if (warnings.length && !overlapError && !colisionesPlegado.length) alertHtml += `<div class="alert info">${warnings.map(w=>`<div>ℹ ${w}</div>`).join('')}</div>`;
     if (soportesInfo) {
