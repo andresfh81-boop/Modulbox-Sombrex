@@ -280,6 +280,10 @@
 <div class="wrap">
   <div class="panel form no-print">
     <div id="offlineBanner" class="offline-banner">Sin conexión — la app sigue funcionando con los datos guardados en el dispositivo.</div>
+    <div id="updateBanner" class="install-banner">
+      <span id="updateMsg" style="flex:1;">Hay una versión nueva de la app.</span>
+      <button id="btnUpdate" type="button">Actualizar</button>
+    </div>
     <div id="installBanner" class="install-banner">
       <span id="installMsg" style="flex:1;">Instala esta app en tu móvil para usarla sin conexión.</span>
       <button id="btnInstall" type="button">Instalar</button>
@@ -3619,9 +3623,28 @@ document.addEventListener('DOMContentLoaded', App.init);
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('PWA: Service Worker registrado con éxito', reg))
+        .then(reg => {
+          console.log('PWA: Service Worker registrado con éxito', reg);
+          // Busca versión nueva al volver a la app y cada 30 min (por si se deja abierta días).
+          const buscar = () => reg.update().catch(() => {});
+          document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') buscar(); });
+          setInterval(buscar, 30 * 60 * 1000);
+        })
         .catch(err => console.error('PWA: Error al registrar el Service Worker', err));
     });
+    // Si llega una versión nueva con la app abierta, avisa en vez de recargar (no se pierde lo que haya escrito).
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        const tr = (es, en, fr, de, it, pt) => typeof t3 === 'function' ? t3(es, en, fr, de, it, pt) : es;
+        document.getElementById('updateMsg').textContent = tr(
+          'Hay una versión nueva de la app.', 'A new version of the app is available.',
+          'Une nouvelle version de l\'application est disponible.', 'Eine neue Version der App ist verfügbar.',
+          'È disponibile una nuova versione dell\'app.', 'Há uma nova versão da app.');
+        document.getElementById('btnUpdate').textContent = tr('Actualizar', 'Update', 'Mettre à jour', 'Aktualisieren', 'Aggiorna', 'Atualizar');
+        document.getElementById('updateBanner').classList.add('show');
+      });
+    }
+    document.getElementById('btnUpdate').addEventListener('click', () => location.reload());
   }
 
   let deferredPrompt = null;
