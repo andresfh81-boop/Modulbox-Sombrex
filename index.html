@@ -255,6 +255,72 @@
     .plano-modal-body { min-height: 100%; display: flex; align-items: flex-start; justify-content: center; padding: 60px 24px; }
     .plano-modal-body #planoOut { background: #fff; padding: 24px; border-radius: 14px; max-width: none; }
   </style>
+<!-- Interruptor remoto: si en https://github.com/andresfh81-boop/estado-apps (estado.json) esta app
+     tiene "activa": false, se bloquea con un aviso. Se acuerda del último false: sigue bloqueada sin
+     conexión hasta que vuelva a leer "activa": true. Si no puede leer el archivo, no cambia nada. -->
+<script>
+(function () {
+  var ID = 'modulbox-sombrex';
+  var URL_ESTADO = 'https://raw.githubusercontent.com/andresfh81-boop/estado-apps/main/estado.json';
+  var CLAVE = 'interruptor-apagada:' + ID; /* todas las apps comparten andresfh81-boop.github.io */
+  var capa = null, texto = null;
+
+  function inerte(si) {
+    if (document.body) { if (si) document.body.setAttribute('inert', ''); else document.body.removeAttribute('inert'); }
+  }
+  function bloquear(mensaje) {
+    if (!capa) {
+      capa = document.createElement('div');
+      capa.setAttribute('role', 'alertdialog');
+      capa.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;background:#132433;color:#fff;font:17px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center';
+      var t = document.createElement('div');
+      t.style.cssText = 'font-size:24px;font-weight:700';
+      t.textContent = '⛔ App desactivada';
+      texto = document.createElement('div');
+      texto.style.cssText = 'max-width:480px';
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = 'Volver a comprobar';
+      b.style.cssText = 'margin-top:8px;padding:10px 18px;border:0;border-radius:8px;background:#fff;color:#132433;font:inherit;font-weight:600;cursor:pointer';
+      b.onclick = comprobar;
+      capa.appendChild(t); capa.appendChild(texto); capa.appendChild(b);
+      document.documentElement.appendChild(capa);
+    }
+    texto.textContent = mensaje || 'Esta aplicación está desactivada temporalmente. No la uses hasta que vuelva a estar activa.';
+    inerte(true);
+  }
+  function desbloquear() {
+    if (capa) { capa.remove(); capa = null; }
+    inerte(false);
+  }
+  function comprobar() {
+    if (!window.fetch) return;
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var reloj = setTimeout(function () { if (ctrl) ctrl.abort(); }, 8000);
+    fetch(URL_ESTADO + '?t=' + Date.now(), { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (estado) {
+        var app = estado && estado[ID];
+        if (!app) return;
+        if (app.activa === false) {
+          try { localStorage.setItem(CLAVE, JSON.stringify({ mensaje: app.mensaje || '' })); } catch (e) {}
+          bloquear(app.mensaje);
+        } else if (app.activa === true) {
+          try { localStorage.removeItem(CLAVE); } catch (e) {}
+          desbloquear();
+        }
+      })
+      .catch(function () {})
+      .then(function () { clearTimeout(reloj); });
+  }
+
+  try { var g = JSON.parse(localStorage.getItem(CLAVE)); if (g) bloquear(g.mensaje); } catch (e) {}
+  document.addEventListener('DOMContentLoaded', function () { if (capa) inerte(true); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') comprobar(); });
+  setInterval(comprobar, 10 * 60 * 1000);
+  comprobar();
+})();
+</script>
 </head>
 
 <body>

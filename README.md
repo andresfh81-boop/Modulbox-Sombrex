@@ -48,3 +48,15 @@ guardada), así que el cambio llega al abrirla, sin hacer nada más.
 Conviene seguir subiendo en 1 el número de `CACHE_NAME` en `sw.js` (p. ej. `modulbox-sbx-v31`): así se renueva
 también la copia sin conexión y, si alguien tiene la app abierta, le sale el aviso «Hay una versión
 nueva» con el botón «Actualizar».
+
+## Interruptor remoto
+
+Al abrirse (y al volver a la app, y cada 10 min) consulta
+`https://raw.githubusercontent.com/andresfh81-boop/estado-apps/main/estado.json`, clave `modulbox-sombrex`:
+
+- `"activa": false` → pantalla «App desactivada» (con el `mensaje`, si lo hay) y no deja usarla.
+  Se acuerda: **sigue bloqueada sin conexión** hasta que lea `"activa": true`.
+- `"activa": true` → funciona (y se quita el bloqueo si lo había).
+- Sin conexión, sin el archivo o sin la clave → no cambia nada (sigue como estaba).
+
+El cambio en GitHub tarda hasta unos 5 minutos en llegar. `sw.js` deja pasar esa petición directa a internet.

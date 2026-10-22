@@ -1,4 +1,4 @@
-const CACHE_NAME = 'modulbox-sbx-v30';
+const CACHE_NAME = 'modulbox-sbx-v31';
 const APP_SHELL = [
 './',
 './index.html',
@@ -54,6 +54,8 @@ red.then((r) => { clearTimeout(timer); dar(r); })
 
 self.addEventListener('fetch', (event) => {
 if (event.request.method !== 'GET') return;
+// El interruptor remoto (estado-apps) va siempre directo a internet, sin pasar por la copia.
+if (event.request.url.startsWith('https://raw.githubusercontent.com/')) return;
 
 if (event.request.mode === 'navigate') {
 event.respondWith(paginaRed(event));
