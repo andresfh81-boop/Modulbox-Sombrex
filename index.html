@@ -2831,10 +2831,11 @@ const App = (() => {
   };
 
   // Disponibilidad de perfiles por Modelo:
-  //  - FullBOX: incorpora los 4 (forzados a Sí, no editables).
+  //  - FullBOX: incorpora los 4 (forzados a Sí, no editables). Solo con motor (máquina forzada a No).
   //  - SemiBOX: Tejadillo forzado a Sí (obligatorio, con sus soportes); Lira Posterior y Lira/Cofre opcionales.
-  //  - OPEN: sin Tejadillo ni Lira/Cofre (forzados a No); Lira Posterior opcional.
-  //  - SemiOPEN: Tejadillo, Lira Posterior y Lira/Cofre opcionales.
+  //  - OPEN: sin Tejadillo ni Lira Posterior (forzados a No); Lira/Cofre ("perfil lira" del manual) opcional.
+  //    Manual MODULBOX-400 pág. 7: la tabla de corte OPEN solo lleva PF. LIRA.
+  //  - SemiOPEN: Tejadillo forzado a Sí; Lira Posterior y Lira/Cofre opcionales.
   //  - Perfil Inferior: exclusivo de FullBOX (forzado a No en el resto).
   const forceSelect = (sel, value) => {
     sel.disabled = true;
@@ -2858,8 +2859,8 @@ const App = (() => {
       forceSelect(refs.perfilInferior, 'NO');
     } else if (modelo === 'OPEN') {
       forceSelect(refs.perfilTejadillo, 'NO');
-      refs.perfilLiraPosterior.disabled = false;
-      forceSelect(refs.perfilLiraCofre, 'NO');
+      forceSelect(refs.perfilLiraPosterior, 'NO');
+      refs.perfilLiraCofre.disabled = false;
       forceSelect(refs.perfilInferior, 'NO');
     } else {
       // SemiOPEN: la tabla de corte del manual siempre incluye el perfil tejadillo.
