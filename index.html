@@ -3519,6 +3519,31 @@ const App = (() => {
       </div>
     `;
 
+    // Descripción de cada fila: la de Cliente (cota al centro, desde 0 con tapa) y la de Taller
+    // (sobre la barra cuadrada; soporte brazo al borde del lado de su extremo, ver cotaTallerSoporte).
+    const descTallerCentro = t3('Distancia desde el extremo izquierdo de la barra cuadrada al centro del soporte',
+      'Distance from the left end of the square bar to the centre of the bracket',
+      'Distance de l\'extrémité gauche de la barre carrée au centre du support',
+      'Abstand vom linken Ende der Vierkantstange zur Mitte der Konsole',
+      'Distanza dall\'estremità sinistra della barra quadra al centro del supporto',
+      'Distância da extremidade esquerda da barra quadrada ao centro do suporte');
+    const descTallerBrazo = (lado) => lado === 'der'
+      ? t3('Distancia desde el extremo izquierdo de la barra cuadrada al borde derecho del soporte',
+          'Distance from the left end of the square bar to the right edge of the bracket',
+          'Distance de l\'extrémité gauche de la barre carrée au bord droit du support',
+          'Abstand vom linken Ende der Vierkantstange zur rechten Kante der Konsole',
+          'Distanza dall\'estremità sinistra della barra quadra al bordo destro del supporto',
+          'Distância da extremidade esquerda da barra quadrada à borda direita do suporte')
+      : t3('Distancia desde el extremo izquierdo de la barra cuadrada al borde izquierdo del soporte',
+          'Distance from the left end of the square bar to the left edge of the bracket',
+          'Distance de l\'extrémité gauche de la barre carrée au bord gauche du support',
+          'Abstand vom linken Ende der Vierkantstange zur linken Kante der Konsole',
+          'Distanza dall\'estremità sinistra della barra quadra al bordo sinistro del supporto',
+          'Distância da extremidade esquerda da barra quadrada à borda esquerda do suporte');
+    const descFila = (textoTaller) => grosorTapa
+      ? `<span class="col-cliente">${labels.descSoporte}</span><span class="taller-only">${textoTaller}</span>`
+      : labels.descSoporte;
+
     const tallerTd = (valor) => grosorTapa ? `<td class="col-taller">${valor === null ? '—' : `<b>${valor} mm</b>`}</td>` : '';
 
     let tableRows = `
@@ -3541,7 +3566,7 @@ const App = (() => {
           <td>${soportesEnChoque.has(item.clave) ? '<span class="marca-colision">⚠ </span>' : ''}<span class="badge ${badgeClass}">${item.tipo}</span></td>
           <td class="col-cliente"><b>${item.label} mm</b></td>
           ${tallerTd(cotaTallerSoporte(Number(item.label), item.lado))}
-          <td>${labels.descSoporte}</td>
+          <td>${descFila(item.esPared ? descTallerCentro : descTallerBrazo(item.lado))}</td>
         </tr>
       `;
     });
@@ -3559,7 +3584,7 @@ const App = (() => {
             <td>${soportesEnChoque.has(grupo.prefix + (idx + 1)) ? '<span class="marca-colision">⚠ </span>' : ''}<span class="badge ${grupo.badgeClass}">${grupo.label} ${grupo.prefix}${idx+1}</span></td>
             <td class="col-cliente"><b>${cota} mm</b></td>
             ${tallerTd(cotaTallerSoporte(cota, null))}
-            <td>${labels.descSoporte}</td>
+            <td>${descFila(descTallerCentro)}</td>
           </tr>
         `;
       });
