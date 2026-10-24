@@ -3535,7 +3535,49 @@ const App = (() => {
       rowY += 28;
     });
 
-    const totalHeight = perfilRows.length ? (rowY - 8) : baseHeight;
+    // Leyenda al pie del plano (sale también al imprimir y en PDF/PNG): solo lo que aparece en este plano.
+    const leyenda = [];
+    const ladosPresentes = new Set(brazos.map(b => b.lado).filter(Boolean));
+    leyenda.push({ txt: t3('Motor', 'Motor', 'Moteur', 'Motor', 'Motore', 'Motor'),
+      sim: (x, y) => `<circle cx="${x + 7}" cy="${y}" r="7" fill="#374151"/><text x="${x + 7}" y="${y + 3}" text-anchor="middle" font-size="8" font-weight="900" fill="#ffffff">M</text>` });
+    if (grosorTapa) leyenda.push({ txt: t3('Tapa', 'End cap', 'Embout', 'Endkappe', 'Tappo', 'Tampa'),
+      sim: (x, y) => `<rect x="${x + 4}" y="${y - 7}" width="6" height="14" rx="1" fill="#9ca3af" stroke="#6b7280" stroke-width="1"/>` });
+    leyenda.push({ txt: t3('Soporte motor / punta (22 mm)', 'Motor / end bracket (22 mm)', 'Support moteur / bout (22 mm)', 'Motor- / Endlager (22 mm)', 'Supporto motore / punta (22 mm)', 'Suporte motor / ponta (22 mm)'),
+      sim: (x, y) => `<rect x="${x + 3}" y="${y - 8}" width="8" height="16" rx="1" fill="#fdba74" fill-opacity="0.45" stroke="#c2410c" stroke-width="1.2"/>` });
+    if (paredes.length) leyenda.push({ txt: `SP: ${t3('soporte de pared', 'wall bracket', 'support mural', 'Wandkonsole', 'supporto a parete', 'suporte de parede')}`,
+      sim: (x, y) => `<rect x="${x}" y="${y - 7}" width="14" height="14" rx="2" fill="url(#metalGrad)" stroke="#2563eb" stroke-width="1.5"/>` });
+    if (ladosPresentes.has('izq')) leyenda.push({ txt: `P·${ladoLetra('izq')}: ${t3('soporte brazo izquierdo (banda roja)', 'left arm bracket (red band)', 'support bras gauche (bande rouge)', 'Armkonsole links (rotes Band)', 'supporto braccio sinistro (banda rossa)', 'suporte braço esquerdo (banda vermelha)')}`,
+      sim: (x, y) => `<rect x="${x}" y="${y - 7}" width="14" height="14" rx="3" fill="url(#metalGrad)" stroke="#ef4444" stroke-width="1.5"/>` });
+    if (ladosPresentes.has('der')) leyenda.push({ txt: `P·${ladoLetra('der')}: ${t3('soporte brazo derecho (banda verde)', 'right arm bracket (green band)', 'support bras droit (bande verte)', 'Armkonsole rechts (grünes Band)', 'supporto braccio destro (banda verde)', 'suporte braço direito (banda verde)')}`,
+      sim: (x, y) => `<rect x="${x}" y="${y - 7}" width="14" height="14" rx="3" fill="url(#metalGrad)" stroke="#10b981" stroke-width="1.5"/>` });
+    if (ladosPresentes.size) leyenda.push({ txt: t3('brazo plegado (hasta el codo)', 'folded arm (up to the elbow)', 'bras replié (jusqu\'au coude)', 'eingeklappter Arm (bis zum Gelenk)', 'braccio chiuso (fino al gomito)', 'braço recolhido (até ao cotovelo)'),
+      sim: (x, y) => `<rect x="${x}" y="${y - 5}" width="16" height="10" fill="rgba(37, 99, 235, 0.08)" stroke="#2563eb" stroke-width="0.8"/>` });
+    const NOMBRE_PERFIL = {
+      T:  t3('soporte tejadillo', 'canopy bracket', 'support auvent', 'Vordachkonsole', 'supporto tettuccio', 'suporte telhado'),
+      LP: t3('soporte lira posterior', 'rear lyre bracket', 'support lyre arrière', 'hintere Lyra-Konsole', 'supporto lira posteriore', 'suporte lira posterior'),
+      LC: t3('soporte lira / cofre', 'lyre / cassette bracket', 'support lyre / coffre', 'Lyra- / Kassettenkonsole', 'supporto lira / cassonetto', 'suporte lira / cofre'),
+      I:  t3('soporte perfil inferior', 'lower profile bracket', 'support profil inférieur', 'Unterprofilkonsole', 'supporto profilo inferiore', 'suporte perfil inferior'),
+    };
+    perfilRows.forEach(row => leyenda.push({ txt: `${row.prefix}: ${NOMBRE_PERFIL[row.prefix]}`,
+      sim: (x, y) => `<circle cx="${x + 7}" cy="${y}" r="5" fill="#ffffff" stroke="${row.color}" stroke-width="1.5"/>` }));
+    if (tramosA.length) leyenda.push({ clase: 'cota-a-taller', txt: t3('cota A: cara interior del soporte motor/punta → cara del soporte brazo', 'A dimension: inner face of motor/end bracket → arm bracket face', 'cote A : face intérieure du support moteur/bout → face du support de bras', 'Maß A: Innenseite Motor-/Endlager → Seite der Armkonsole', 'quota A: faccia interna supporto motore/punta → faccia supporto braccio', 'cota A: face interior do suporte motor/ponta → face do suporte do braço'),
+      sim: (x, y) => `<line x1="${x + 1}" y1="${y}" x2="${x + 17}" y2="${y}" stroke="#c2410c" stroke-width="1.2" marker-start="url(#arrowStart)" marker-end="url(#arrowEnd)"/>` });
+
+    const X_LEYENDA = 20;
+    const ALTO_FILA_LEYENDA = 20;
+    let yLeyenda = (perfilRows.length ? rowY : baseHeight) + 14;
+    imageElements += `
+      <line x1="${X_LEYENDA}" y1="${yLeyenda - 12}" x2="${vbWidth - X_LEYENDA}" y2="${yLeyenda - 12}" stroke="#e5e7eb" stroke-width="1"/>
+      <text x="${X_LEYENDA}" y="${yLeyenda + 4}" font-size="10" font-weight="800" fill="#374151">${t3('Leyenda', 'Legend', 'Légende', 'Legende', 'Legenda', 'Legenda')}:</text>
+    `;
+    let xLeyenda = X_LEYENDA + 62;
+    leyenda.forEach(it => {
+      const ancho = 22 + it.txt.length * 5.3 + 16;
+      if (xLeyenda + ancho > vbWidth - X_LEYENDA) { xLeyenda = X_LEYENDA + 62; yLeyenda += ALTO_FILA_LEYENDA; }
+      imageElements += `<g${it.clase ? ` class="${it.clase}"` : ''}>${it.sim(xLeyenda, yLeyenda)}<text x="${xLeyenda + 22}" y="${yLeyenda + 3.5}" font-size="10" fill="#374151">${it.txt}</text></g>`;
+      xLeyenda += ancho;
+    });
+    const totalHeight = yLeyenda + 14;
 
     // SVG del plano, generado una sola vez y reutilizado tal cual dentro de la lupa
     // (misma viewBox, así que basta con escalarlo con CSS para ampliarlo sin perder nitidez).
