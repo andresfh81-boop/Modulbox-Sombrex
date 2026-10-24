@@ -1993,7 +1993,8 @@ const App = (() => {
     const map = { es, en, fr, de, it, pt };
     return map[currentLang] ?? en;
   };
-  const ladoLetra = (lado) => lado === 'der' ? t3('D', 'R', 'D', 'R', 'D', 'D') : t3('I', 'L', 'G', 'L', 'S', 'E');
+  // Mano del brazo en su código (B1-Izq, B2-Der…), abreviada en cada idioma.
+  const ladoLetra = (lado) => lado === 'der' ? t3('Der', 'R', 'D', 'R', 'Dx', 'Dir') : t3('Izq', 'L', 'G', 'L', 'Sx', 'Esq');
 
   const refs = {
     pedido:          document.getElementById('pedido'),
@@ -2948,7 +2949,7 @@ const App = (() => {
       if (!input) return;
       if (b.cota < 0 || b.cota > L || isNaN(b.cota)) {
         input.classList.add('error');
-        errores.push(`P${b.n} cota inválida`);
+        errores.push(`B${b.n} cota inválida`);
       } else {
         input.classList.remove('error');
       }
@@ -3042,7 +3043,7 @@ const App = (() => {
     // soporte de Tejadillo, Lira Posterior, Lira/Cofre e Inferior contra todos ellos. Entre
     // Tejadillo, Liras e Inferior no se avisa: si coinciden se ponen uno al lado del otro.
     const soportesFijos = [
-      ...brazos.map(b => ({ cota: b.cota, nombre: `P${b.n}${ladoLetra(b.lado)}` })),
+      ...brazos.map(b => ({ cota: b.cota, nombre: `B${b.n}-${ladoLetra(b.lado)}` })),
       ...paredes.map((c, idx) => ({ cota: c, nombre: `SP${idx + 1}` })),
     ];
     // Tejadillo, lira posterior y lira trasera (cofre) van en el MISMO soporte T: uno por punto.
@@ -3093,17 +3094,17 @@ const App = (() => {
       if (aInv && bInv) {
         nec = (brazoRep * 2) + holgura;
         tipo = t3('enfrentados → hueco DOBLE', 'facing → DOUBLE gap', 'opposés → espace DOUBLE', 'gegenüberliegend → DOPPELTE Lücke', 'contrapposti → spazio DOPPIO', 'frente a frente → espaço DUPLO');
-        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo P${a.n} – Codo P${b.n}`, valor: Math.round(sep - brazoRep * 2) });
+        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo B${a.n} – Codo B${b.n}`, valor: Math.round(sep - brazoRep * 2) });
       } else if (aInv || bInv) {
         nec = brazoRep + holgura;
         tipo = t3('un brazo en el hueco', 'one arm in gap', 'un bras dans l\'espace', 'ein Arm in der Lücke', 'un braccio nello spazio', 'um braço no espaço');
         const pFolded = aInv ? a.n : b.n;
         const pFijo = aInv ? b.n : a.n;
-        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo P${pFolded} – Soporte P${pFijo}`, valor: Math.round(sep - brazoRep) });
+        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo B${pFolded} – Soporte B${pFijo}`, valor: Math.round(sep - brazoRep) });
       } else {
         nec = holgura;
         tipo = t3('divergentes', 'diverging', 'divergents', 'divergierend', 'divergenti', 'divergentes');
-        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo P${a.n} – Codo P${b.n} (divergentes)`, valor: Math.round(sep + brazoRep * 2) });
+        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo B${a.n} – Codo B${b.n} (divergentes)`, valor: Math.round(sep + brazoRep * 2) });
       }
 
       // La holgura se suma encima del mínimo que mande (plegado o manual): por defecto 0;
@@ -3115,7 +3116,7 @@ const App = (() => {
       nec = Math.max(necPlegado, necManual) + holguraHueco;
 
       if (sep < nec) {
-        colisionesPlegado.push(`${labels.errColisionPlegado} P${a.n}–P${b.n} (${tipo}): gap ${sep}mm < ${Math.round(nec)}mm (Brazo Onyx: ${brazoRep}mm${porManual ? ` · mín. manual Onyx ${aInv && bInv ? 'B' : 'C'}min ${Math.round(necManual)}mm` : ''}${holguraHueco ? ` + holgura ${holguraHueco}mm` : ''}).`);
+        colisionesPlegado.push(`${labels.errColisionPlegado} B${a.n}–B${b.n} (${tipo}): gap ${sep}mm < ${Math.round(nec)}mm (Brazo Onyx: ${brazoRep}mm${porManual ? ` · mín. manual Onyx ${aInv && bInv ? 'B' : 'C'}min ${Math.round(necManual)}mm` : ''}${holguraHueco ? ` + holgura ${holguraHueco}mm` : ''}).`);
         
         const bOrigA = brazos.find(x => x.n === a.n);
         const bOrigB = brazos.find(x => x.n === b.n);
@@ -3132,7 +3133,7 @@ const App = (() => {
       ...paredes.map((c, idx) => ({ cota: c, nombre: `${labels.badgePared} SP${idx+1}` })),
       ...brazos.map(b => {
         const letra = ladoLetra(b.lado);
-        return { cota: b.cota, nombre: `${b.lado==='izq'?labels.badgeBrazoI:labels.badgeBrazoD} P${b.n}${letra}` };
+        return { cota: b.cota, nombre: `${b.lado==='izq'?labels.badgeBrazoI:labels.badgeBrazoD} B${b.n}-${letra}` };
       })
     ];
 
@@ -3272,7 +3273,7 @@ const App = (() => {
       ...listaParedesConEscala.map(p => ({ x: p.x, label: `${p.cota}`, color: '#2563eb', tipo: `${labels.badgePared} SP${p.id}`, clave: `SP${p.id}`, lado: null, esPared: true })),
       ...listaBrazosConEscala.map(b => {
         const letra = ladoLetra(b.bObj.lado);
-        return { x: b.x, label: `${b.cota}`, color: b.bObj.lado === 'der' ? '#10b981' : '#ef4444', tipo: `${b.bObj.lado === 'izq' ? labels.badgeBrazoI : labels.badgeBrazoD} P${b.bObj.n}${letra}`, clave: `P${b.bObj.n}${letra}`, lado: b.bObj.lado, esPared: false };
+        return { x: b.x, label: `${b.cota}`, color: b.bObj.lado === 'der' ? '#10b981' : '#ef4444', tipo: `${b.bObj.lado === 'izq' ? labels.badgeBrazoI : labels.badgeBrazoD} B${b.bObj.n}-${letra}`, clave: `B${b.bObj.n}-${letra}`, lado: b.bObj.lado, esPared: false };
       })
     ].sort((a, b) => a.x - b.x);
 
@@ -3414,9 +3415,9 @@ const App = (() => {
           <rect x="${xCabeza}" y="${yBase + 6}" width="${wCabeza}" height="${altoBrazo - 12}" rx="12" fill="#ffffff" stroke="${strokeColor}" stroke-width="2"/>
           <rect x="${xMordaza}" y="${yBase}" width="${wMordaza}" height="${altoBrazo}" rx="10" fill="url(#metalGrad)" stroke="${strokeColor}" stroke-width="2.5"/>
           <text x="${xMordaza + wMordaza/2}" y="${yBase + altoBrazo/2 + 2}" text-anchor="middle" font-size="11" font-weight="900" fill="${strokeColor}">B</text>
-          <text x="${xMordaza + wMordaza/2}" y="${yBase + altoBrazo/2 + 12}" text-anchor="middle" font-size="9" font-weight="700" fill="${strokeColor}">P${b.n}${letra}</text>
-          <rect x="${x - 18}" y="${yBase - 30}" width="36" height="15" rx="3" fill="#ffffff" stroke="${strokeColor}" stroke-width="1"/>
-          <text x="${x}" y="${yBase - 19}" text-anchor="middle" font-size="10" font-weight="bold" fill="${strokeColor}">P${b.n}${letra}</text>
+          <text x="${xMordaza + wMordaza/2}" y="${yBase + altoBrazo/2 + 12}" text-anchor="middle" font-size="9" font-weight="700" fill="${strokeColor}">B${b.n}-${letra}</text>
+          <rect x="${x - 23}" y="${yBase - 30}" width="46" height="15" rx="3" fill="#ffffff" stroke="${strokeColor}" stroke-width="1"/>
+          <text x="${x}" y="${yBase - 19}" text-anchor="middle" font-size="10" font-weight="bold" fill="${strokeColor}">B${b.n}-${letra}</text>
         </g>
       `;
 
@@ -3519,8 +3520,8 @@ const App = (() => {
         <line x1="${x1}" y1="${yBar + 8}" x2="${x1}" y2="${y + 5}" stroke="#c2410c" stroke-width="0.8" stroke-dasharray="2 2"/>
         <line x1="${x2}" y1="${yBar + 8}" x2="${x2}" y2="${y + 5}" stroke="#c2410c" stroke-width="0.8" stroke-dasharray="2 2"/>
         <line x1="${x1 + 2}" y1="${y}" x2="${x2 - 2}" y2="${y}" stroke="#c2410c" stroke-width="1" marker-start="url(#arrowStart)" marker-end="url(#arrowEnd)"/>
-        <rect x="${xm - 30}" y="${y - 7}" width="60" height="13" rx="3" fill="#fff7ed" stroke="#c2410c" stroke-width="1"/>
-        <text x="${xm}" y="${y + 3}" text-anchor="middle" font-size="9.5" font-weight="800" fill="#c2410c">A P${t.n}${t.letra}: ${t.valor}</text>
+        <rect x="${xm - 36}" y="${y - 7}" width="72" height="13" rx="3" fill="#fff7ed" stroke="#c2410c" stroke-width="1"/>
+        <text x="${xm}" y="${y + 3}" text-anchor="middle" font-size="9.5" font-weight="800" fill="#c2410c">A B${t.n}-${t.letra}: ${t.valor}</text>
       `;
     });
     if (cotasA) imageElements += `<g class="cota-a-taller">${cotasA}</g>`;
@@ -3559,9 +3560,9 @@ const App = (() => {
       sim: (x, y) => `<rect x="${x + 3}" y="${y - 8}" width="8" height="16" rx="1" fill="#fdba74" fill-opacity="0.45" stroke="#c2410c" stroke-width="1.2"/>` });
     if (paredes.length) leyenda.push({ txt: `SP: ${t3('soporte de pared', 'wall bracket', 'support mural', 'Wandkonsole', 'supporto a parete', 'suporte de parede')}`,
       sim: (x, y) => `<rect x="${x}" y="${y - 7}" width="14" height="14" rx="2" fill="url(#metalGrad)" stroke="#2563eb" stroke-width="1.5"/>` });
-    if (ladosPresentes.has('izq')) leyenda.push({ txt: `P·${ladoLetra('izq')}: ${t3('soporte brazo izquierdo (banda roja)', 'left arm bracket (red band)', 'support bras gauche (bande rouge)', 'Armkonsole links (rotes Band)', 'supporto braccio sinistro (banda rossa)', 'suporte braço esquerdo (banda vermelha)')}`,
+    if (ladosPresentes.has('izq')) leyenda.push({ txt: `B-${ladoLetra('izq')}: ${t3('soporte brazo izquierdo (banda roja)', 'left arm bracket (red band)', 'support bras gauche (bande rouge)', 'Armkonsole links (rotes Band)', 'supporto braccio sinistro (banda rossa)', 'suporte braço esquerdo (banda vermelha)')}`,
       sim: (x, y) => `<rect x="${x}" y="${y - 7}" width="14" height="14" rx="3" fill="url(#metalGrad)" stroke="#ef4444" stroke-width="1.5"/>` });
-    if (ladosPresentes.has('der')) leyenda.push({ txt: `P·${ladoLetra('der')}: ${t3('soporte brazo derecho (banda verde)', 'right arm bracket (green band)', 'support bras droit (bande verte)', 'Armkonsole rechts (grünes Band)', 'supporto braccio destro (banda verde)', 'suporte braço direito (banda verde)')}`,
+    if (ladosPresentes.has('der')) leyenda.push({ txt: `B-${ladoLetra('der')}: ${t3('soporte brazo derecho (banda verde)', 'right arm bracket (green band)', 'support bras droit (bande verte)', 'Armkonsole rechts (grünes Band)', 'supporto braccio destro (banda verde)', 'suporte braço direito (banda verde)')}`,
       sim: (x, y) => `<rect x="${x}" y="${y - 7}" width="14" height="14" rx="3" fill="url(#metalGrad)" stroke="#10b981" stroke-width="1.5"/>` });
     if (ladosPresentes.size) leyenda.push({ txt: t3('brazo plegado (hasta el codo)', 'folded arm (up to the elbow)', 'bras replié (jusqu\'au coude)', 'eingeklappter Arm (bis zum Gelenk)', 'braccio chiuso (fino al gomito)', 'braço recolhido (até ao cotovelo)'),
       sim: (x, y) => `<rect x="${x}" y="${y - 5}" width="16" height="10" fill="rgba(37, 99, 235, 0.08)" stroke="#2563eb" stroke-width="0.8"/>` });
@@ -3763,7 +3764,7 @@ const App = (() => {
         const aBrazo = calcularABrazo(b.cota, b.lado, L, grosorTapa);
         terminalRows += `
           <tr>
-            <td>P${b.n}${letra}</td>
+            <td>B${b.n}-${letra}</td>
             <td>${b.lado === 'izq' ? labels.brazoIzq : labels.brazoDer}</td>
             <td class="col-cliente">${b.cota} mm</td>
             ${grosorTapa ? `<td class="col-taller"><b>${soporteTaller} mm</b></td>` : ''}
