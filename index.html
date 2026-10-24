@@ -3207,7 +3207,7 @@ const App = (() => {
       finCarrilA[c] = t.hasta;
       t.carril = c;
     });
-    const baseCotaY    = yBar + 28 + finCarrilA.length * ALTO_CARRIL_A;
+    let baseCotaY      = yBar + 28 + finCarrilA.length * ALTO_CARRIL_A;
     const labelWidthGap = 64;       
     const carrilHeight  = 34;       
 
@@ -3306,20 +3306,36 @@ const App = (() => {
       if (idx === 0 || h.cota !== hitosIntermedios[idx-1].cota) hitosLimpios.push(h);
     });
 
+    // Cotas parciales entre hitos. La caja se ajusta al número; si no cabe sin pisar la anterior
+    // (tramos cortos), esa cota baja a una segunda fila justo debajo de la barra.
     const yCotaIntermedia = yBar - 15;
+    const yCotaIntermediaBajo = yBar + 19;
+    const finFilaCota = [-Infinity, -Infinity];
+    let hayFilaBajo = false;
+    let lineasCota = '';
+    let cajasCota = '';
     for (let i = 0; i < hitosLimpios.length - 1; i++) {
       const h1 = hitosLimpios[i];
       const h2 = hitosLimpios[i+1];
       const distReal = h2.cota - h1.cota;
+      if (distReal <= 0) continue;
       const xMedio = (h1.x + h2.x) / 2;
-      if (distReal > 0) {
-        imageElements += `
-          <line x1="${h1.x + 2}" y1="${yCotaIntermedia}" x2="${h2.x - 2}" y2="${yCotaIntermedia}" stroke="#4b5563" stroke-width="1" marker-start="url(#arrowStart)" marker-end="url(#arrowEnd)"/>
-          <rect x="${xMedio - 22}" y="${yCotaIntermedia - 9}" width="44" height="15" rx="3" fill="#ffffff" stroke="#9ca3af" stroke-width="0.8"/>
-          <text x="${xMedio}" y="${yCotaIntermedia + 2}" text-anchor="middle" font-size="10" font-weight="700" fill="#374151">${distReal}</text>
-        `;
-      }
+      const anchoCaja = Math.max(22, String(distReal).length * 6.4 + 8);
+      const ini = xMedio - anchoCaja / 2;
+      let fila = ini >= finFilaCota[0] + 2 ? 0 : (ini >= finFilaCota[1] + 2 ? 1 : 0);
+      finFilaCota[fila] = xMedio + anchoCaja / 2;
+      if (fila === 1) hayFilaBajo = true;
+      const y = fila === 0 ? yCotaIntermedia : yCotaIntermediaBajo;
+      lineasCota += `<line x1="${h1.x + 2}" y1="${y}" x2="${h2.x - 2}" y2="${y}" stroke="#4b5563" stroke-width="1" marker-start="url(#arrowStart)" marker-end="url(#arrowEnd)"/>`;
+      cajasCota += `
+        <rect x="${ini}" y="${y - 9}" width="${anchoCaja}" height="15" rx="3" fill="#ffffff" stroke="#9ca3af" stroke-width="0.8"/>
+        <text x="${xMedio}" y="${y + 2}" text-anchor="middle" font-size="10" font-weight="700" fill="#374151">${distReal}</text>
+      `;
     }
+    imageElements += lineasCota + cajasCota;
+    // Si se usa la fila de debajo de la barra, la cota A y las etiquetas de cotas bajan para dejarle sitio.
+    const desplazFilaBajo = hayFilaBajo ? 18 : 0;
+    baseCotaY += desplazFilaBajo;
 
     listaParedesConEscala.forEach((sup) => {
       const x = sup.x;
@@ -3486,7 +3502,7 @@ const App = (() => {
 
     let cotasA = '';
     tramosA.forEach(t => {
-      const y = yBar + 24 + t.carril * ALTO_CARRIL_A;
+      const y = yBar + 24 + desplazFilaBajo + t.carril * ALTO_CARRIL_A;
       const x1 = t.izq ? Math.max(marginLeft + t.desde * scale, xCaraIntIzq) : marginLeft + t.desde * scale;
       const x2 = t.izq ? marginLeft + t.hasta * scale : Math.min(marginLeft + t.hasta * scale, xCaraIntDer);
       const xm = (x1 + x2) / 2;
