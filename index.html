@@ -192,6 +192,7 @@
       body.print-taller .col-taller { display: table-cell !important; }
       body.print-taller .col-cliente { display: none !important; }
       body.print-taller tr.taller-only { display: table-row !important; }
+      body.print-taller span.taller-only { display: inline !important; }
     }
 
     /* Vista Taller en pantalla (botones Cliente/Taller): mismo cambio que la copia
@@ -201,6 +202,7 @@
     body.view-taller .col-taller { display: table-cell !important; }
     body.view-taller .col-cliente { display: none !important; }
     body.view-taller tr.taller-only { display: table-row !important; }
+    body.view-taller span.taller-only { display: inline !important; }
 
     .vista-toggle { margin-top: 0; margin-bottom: 12px; }
 
@@ -3472,6 +3474,7 @@ const App = (() => {
         <div class="plan-meta">
           📋 ${labels.metaPedido}: <b>${pedido}</b> &nbsp;&middot;&nbsp; 👤 ${labels.metaCliente}: <b>${cliente}</b><br/>
           📏 ${labels.metaLinea}: <b>${L} mm</b> &nbsp;&middot;&nbsp; 📐 ${labels.metaSalida}: <b>${S} mm</b> &nbsp;&middot;&nbsp; ⚡ ${labels.metaMotor}: <b>${motor === 'izq' ? labels.motorIzq : labels.motorDer}</b>
+          ${grosorTapa && L > 0 ? `<span class="taller-only"><br/>🔩 ${t3('Barra cuadrada (sin tapas)', 'Square bar (without end caps)', 'Barre carrée (sans embouts)', 'Vierkantstange (ohne Endkappen)', 'Barra quadra (senza tappi)', 'Barra quadrada (sem tampas)')}: <b>${L - 2 * grosorTapa} mm</b> (${L} − 2 × ${grosorTapa})</span>` : ''}
         </div>
       </div>
 
