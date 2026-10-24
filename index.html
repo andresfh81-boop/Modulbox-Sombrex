@@ -1179,11 +1179,10 @@ const App = (() => {
     return counts[idx];
   };
 
-  const sugerirNumLira = (L_mm, maquina, lira) => {
-    let n = lookupPerfil(LIRA_COUNT, L_mm);
-    if (maquina === 'SI' && lira === 'SI') n += 1;
-    return n;
-  };
+  // Manual MODULBOX-400 pág. 5: nº de soportes tejadillo/lira según la línea. La unidad de más que
+  // pide la máquina con perfil lira es una abrazadera en el extremo libre del lado máquina (pág. 22):
+  // no se reparte con las demás, va aparte (ver sopLiraMaquina en render).
+  const sugerirNumLira = (L_mm) => lookupPerfil(LIRA_COUNT, L_mm);
   const sugerirNumInferior = (L_mm) => lookupPerfil(INFERIOR_COUNT, L_mm);
 
   // Reparte "n" soportes con la misma distancia entre ellos: (línea − tapas) / (n+1)
@@ -1209,7 +1208,7 @@ const App = (() => {
     const manual = parseCotas(refs.cotasTejadillo.value, L);
     if (algunoActivo && manual.length) return manual;
     const tapa = Number(refs.grosorTapa.value) || 0;
-    const sugerido = sugerirNumLira(L, refs.maquina.value, 'SI');
+    const sugerido = sugerirNumLira(L);
     return [[refs.perfilTejadillo, refs.numTejadillo], [refs.perfilLiraPosterior, refs.numLiraPosterior], [refs.perfilLiraCofre, refs.numLiraCofre]]
       .filter(([sel]) => sel.value === 'SI')
       .flatMap(([, num]) => posicionesEquidistantes(L, num.value !== '' ? Math.max(0, +num.value) : sugerido, tapa))
@@ -2843,7 +2842,10 @@ const App = (() => {
   };
   const updatePerfilesAvailability = () => {
     const modelo = refs.modelo.value;
+    refs.maquina.disabled = false;
     if (modelo === 'FullBOX') {
+      // Manual MODULBOX-400 (tabla de corte BOX): el Full BOX solo va con motor.
+      forceSelect(refs.maquina, 'NO');
       forceSelect(refs.perfilTejadillo, 'SI');
       forceSelect(refs.perfilLiraPosterior, 'SI');
       forceSelect(refs.perfilLiraCofre, 'SI');
@@ -2860,7 +2862,8 @@ const App = (() => {
       forceSelect(refs.perfilLiraCofre, 'NO');
       forceSelect(refs.perfilInferior, 'NO');
     } else {
-      refs.perfilTejadillo.disabled = false;
+      // SemiOPEN: la tabla de corte del manual siempre incluye el perfil tejadillo.
+      forceSelect(refs.perfilTejadillo, 'SI');
       refs.perfilLiraPosterior.disabled = false;
       refs.perfilLiraCofre.disabled = false;
       forceSelect(refs.perfilInferior, 'NO');
@@ -3022,9 +3025,9 @@ const App = (() => {
       return { activo, n, posiciones: manual.length ? manual : auto, auto };
     };
 
-    const tejadillo     = calcPerfil(refs.perfilTejadillo, refs.numTejadillo, () => sugerirNumLira(L, maquina, 'SI'), refs.cotasTejadillo);
-    const liraPosterior = calcPerfil(refs.perfilLiraPosterior, refs.numLiraPosterior, () => sugerirNumLira(L, maquina, 'SI'), refs.cotasTejadillo);
-    const liraCofre     = calcPerfil(refs.perfilLiraCofre, refs.numLiraCofre, () => sugerirNumLira(L, maquina, 'SI'), refs.cotasTejadillo);
+    const tejadillo     = calcPerfil(refs.perfilTejadillo, refs.numTejadillo, () => sugerirNumLira(L), refs.cotasTejadillo);
+    const liraPosterior = calcPerfil(refs.perfilLiraPosterior, refs.numLiraPosterior, () => sugerirNumLira(L), refs.cotasTejadillo);
+    const liraCofre     = calcPerfil(refs.perfilLiraCofre, refs.numLiraCofre, () => sugerirNumLira(L), refs.cotasTejadillo);
     const perfilInf     = calcPerfil(refs.perfilInferior, refs.numInferior, () => sugerirNumInferior(L), refs.cotasInferior);
     // Para el botón "Editar cotas": el reparto automático actual de cada campo.
     repartoAutoPerfil = { tejadillo: [tejadillo, liraPosterior, liraCofre].find(pf => pf.activo)?.auto || [], inferior: perfilInf.auto };
@@ -3043,7 +3046,13 @@ const App = (() => {
     ];
     // Tejadillo, lira posterior y lira trasera (cofre) van en el MISMO soporte T: uno por punto.
     const soportesT = [...new Set([tejadillo, liraPosterior, liraCofre].flatMap(pf => pf.posiciones))].sort((a, b) => a - b);
-    const soportesPerfil = [[soportesT, 'T'], [perfilInf.posiciones, 'I']]
+    // Manual pág. 5 y 16: con tejadillo, soporte alto T; sin tejadillo (OPEN STD con lira), abrazadera de lira L.
+    const hayLira = liraPosterior.activo || liraCofre.activo;
+    const prefijoSopT = tejadillo.activo ? 'T' : 'L';
+    // Manual pág. 5 y 22: máquina con perfil lira, una abrazadera más en el extremo libre del lado máquina.
+    // El manual no da su cota: en la tabla va "junto al soporte máquina" y en el plano se dibuja pegada a él.
+    const sopLiraMaquina = maquina === 'SI' && hayLira && refs.modelo.value !== 'FullBOX';
+    const soportesPerfil = [[soportesT, prefijoSopT], [perfilInf.posiciones, 'I']]
       .flatMap(([posiciones, prefix]) => posiciones.map((c, idx) => ({ cota: c, nombre: `${prefix}${idx + 1}` })));
     // El aviso da la distancia entre centros (no las cotas), porque la copia de taller mide
     // los soportes brazo al borde y sin tapa; en la tabla se marcan las filas que chocan.
@@ -3517,7 +3526,8 @@ const App = (() => {
 
     const baseHeight = baseCotaY + (maxLaneUsed * carrilHeight) + 45;
     const perfilRows = [
-      { posiciones: soportesT,                color: '#7c3aed', prefix: 'T',  rowLabel: t3('Tej./Lira', 'Can./Lyre', 'Auv./Lyre', 'Vord./Lyra', 'Tett./Lira', 'Telh./Lira') },
+      { posiciones: soportesT,                color: '#7c3aed', prefix: prefijoSopT, rowLabel: prefijoSopT === 'T' ? t3('Tej./Lira', 'Can./Lyre', 'Auv./Lyre', 'Vord./Lyra', 'Tett./Lira', 'Telh./Lira') : t3('Lira', 'Lyre', 'Lyre', 'Lyra', 'Lira', 'Lira') },
+      { posiciones: sopLiraMaquina ? [motor === 'izq' ? grosorTapa + 22 + 30 : L - grosorTapa - 22 - 30] : [], color: '#0891b2', prefix: 'LM', rowLabel: t3('Lira máq.', 'Gear lyre', 'Lyre man.', 'Lyra Getr.', 'Lira arg.', 'Lira máq.') },
       { posiciones: perfilInf.posiciones,     color: '#b45309', prefix: 'I',  rowLabel: t3('Inf.', 'Low.', 'Inf.', 'Unt.', 'Inf.', 'Inf.') },
     ].filter(r => r.posiciones.length);
 
@@ -3558,6 +3568,8 @@ const App = (() => {
       T:  t3('soporte tejadillo / lira (tejadillo, lira posterior y lira trasera en el mismo soporte)', 'canopy / lyre bracket (canopy, rear lyre and back lyre on the same bracket)', 'support auvent / lyre (auvent, lyre arrière et lyre de coffre sur le même support)', 'Vordach-/Lyra-Konsole (Vordach, hintere Lyra und Gehäuse-Lyra auf derselben Konsole)', 'supporto tettuccio / lira (tettuccio, lira posteriore e lira cassonetto sullo stesso supporto)', 'suporte telhado / lira (telhado, lira posterior e lira traseira no mesmo suporte)'),
       LP: t3('soporte lira posterior', 'rear lyre bracket', 'support lyre arrière', 'hintere Lyra-Konsole', 'supporto lira posteriore', 'suporte lira posterior'),
       LC: t3('soporte lira / cofre', 'lyre / cassette bracket', 'support lyre / coffre', 'Lyra- / Kassettenkonsole', 'supporto lira / cassonetto', 'suporte lira / cofre'),
+      L:  t3('abrazadera de lira (OPEN sin tejadillo)', 'lyre clamp (OPEN without canopy)', 'bride de lyre (OPEN sans auvent)', 'Lyra-Klemme (OPEN ohne Vordach)', 'morsetto lira (OPEN senza tettuccio)', 'abraçadeira de lira (OPEN sem telhado)'),
+      LM: t3('abrazadera de lira de más por la máquina, junto al soporte máquina', 'extra lyre clamp for the gear, next to the gear bracket', 'bride de lyre en plus pour la manœuvre, contre son support', 'zusätzliche Lyra-Klemme für das Getriebe, neben dem Getriebelager', 'morsetto lira in più per l\'argano, accanto al suo supporto', 'abraçadeira de lira extra pela máquina, junto ao suporte da máquina'),
       I:  t3('soporte perfil inferior', 'lower profile bracket', 'support profil inférieur', 'Unterprofilkonsole', 'supporto profilo inferiore', 'suporte perfil inferior'),
     };
     perfilRows.forEach(row => leyenda.push({ txt: `${row.prefix}: ${NOMBRE_PERFIL[row.prefix]}`,
@@ -3693,7 +3705,7 @@ const App = (() => {
     });
 
     [
-      { posiciones: soportesT,                badgeClass: 'badge-lira',           label: t3('Soporte Tejadillo/Lira', 'Canopy/Lyre Bracket', 'Support Auvent/Lyre', 'Vordach-/Lyra-Konsole', 'Supporto Tettuccio/Lira', 'Suporte Telhado/Lira'), prefix: 'T' },
+      { posiciones: soportesT,                badgeClass: 'badge-lira',           label: prefijoSopT === 'T' ? t3('Soporte Tejadillo/Lira', 'Canopy/Lyre Bracket', 'Support Auvent/Lyre', 'Vordach-/Lyra-Konsole', 'Supporto Tettuccio/Lira', 'Suporte Telhado/Lira') : t3('Abrazadera Lira', 'Lyre Clamp', 'Bride Lyre', 'Lyra-Klemme', 'Morsetto Lira', 'Abraçadeira Lira'), prefix: prefijoSopT },
       { posiciones: perfilInf.posiciones,     badgeClass: 'badge-inferior',       label: labels.badgeInferior,       prefix: 'I' },
     ].forEach(grupo => {
       grupo.posiciones.forEach((cota, idx) => {
@@ -3708,6 +3720,16 @@ const App = (() => {
         `;
       });
     });
+    if (sopLiraMaquina) {
+      tableRows += `
+        <tr class="taller-only">
+          <td><span class="badge badge-lira">${t3('Abrazadera Lira (máquina)', 'Lyre Clamp (gear)', 'Bride Lyre (manœuvre)', 'Lyra-Klemme (Getriebe)', 'Morsetto Lira (argano)', 'Abraçadeira Lira (máquina)')} LM1</span></td>
+          <td class="col-cliente">—</td>
+          ${tallerTd(null)}
+          <td>${t3('Junto al soporte máquina, en el extremo libre del lado máquina (manual pág. 22)', 'Next to the gear bracket, at the free end on the gear side (manual p. 22)', 'Contre le support de la manœuvre, à l\'extrémité libre côté manœuvre (manuel p. 22)', 'Neben dem Getriebelager, am freien Ende auf der Getriebeseite (Handbuch S. 22)', 'Accanto al supporto argano, all\'estremità libera lato argano (manuale p. 22)', 'Junto ao suporte da máquina, no extremo livre do lado da máquina (manual p. 22)')}</td>
+        </tr>
+      `;
+    }
 
     svgHtml += `
       <table class="summary-table">
