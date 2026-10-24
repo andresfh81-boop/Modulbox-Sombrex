@@ -1212,7 +1212,8 @@ const App = (() => {
     const sugerido = sugerirNumLira(L, refs.maquina.value, 'SI');
     return [[refs.perfilTejadillo, refs.numTejadillo], [refs.perfilLiraPosterior, refs.numLiraPosterior], [refs.perfilLiraCofre, refs.numLiraCofre]]
       .filter(([sel]) => sel.value === 'SI')
-      .flatMap(([, num]) => posicionesEquidistantes(L, num.value !== '' ? Math.max(0, +num.value) : sugerido, tapa));
+      .flatMap(([, num]) => posicionesEquidistantes(L, num.value !== '' ? Math.max(0, +num.value) : sugerido, tapa))
+      .filter((c, i, arr) => arr.indexOf(c) === i);
   };
 
   const i18n = {
@@ -3040,8 +3041,10 @@ const App = (() => {
       ...brazos.map(b => ({ cota: b.cota, nombre: `P${b.n}${ladoLetra(b.lado)}` })),
       ...paredes.map((c, idx) => ({ cota: c, nombre: `SP${idx + 1}` })),
     ];
-    const soportesPerfil = [[tejadillo, 'T'], [liraPosterior, 'LP'], [liraCofre, 'LC'], [perfilInf, 'I']]
-      .flatMap(([perfil, prefix]) => perfil.posiciones.map((c, idx) => ({ cota: c, nombre: `${prefix}${idx + 1}` })));
+    // Tejadillo, lira posterior y lira trasera (cofre) van en el MISMO soporte T: uno por punto.
+    const soportesT = [...new Set([tejadillo, liraPosterior, liraCofre].flatMap(pf => pf.posiciones))].sort((a, b) => a - b);
+    const soportesPerfil = [[soportesT, 'T'], [perfilInf.posiciones, 'I']]
+      .flatMap(([posiciones, prefix]) => posiciones.map((c, idx) => ({ cota: c, nombre: `${prefix}${idx + 1}` })));
     // El aviso da la distancia entre centros (no las cotas), porque la copia de taller mide
     // los soportes brazo al borde y sin tapa; en la tabla se marcan las filas que chocan.
     const choquesPerfil = [];
@@ -3514,9 +3517,7 @@ const App = (() => {
 
     const baseHeight = baseCotaY + (maxLaneUsed * carrilHeight) + 45;
     const perfilRows = [
-      { posiciones: tejadillo.posiciones,     color: '#7c3aed', prefix: 'T',  rowLabel: t3('Tejad.', 'Canopy', 'Auvent', 'Vord.', 'Tett.', 'Telh.') },
-      { posiciones: liraPosterior.posiciones, color: '#0891b2', prefix: 'LP', rowLabel: t3('L.Post.', 'R.Lyre', 'Lyre Ar.', 'Ly.hi.', 'L.Post.', 'L.Post.') },
-      { posiciones: liraCofre.posiciones,     color: '#c026d3', prefix: 'LC', rowLabel: t3('L.Cofre', 'Lyre/Cst', 'Lyre/Cof', 'Ly/Geh', 'L.Cass.', 'L.Cofre') },
+      { posiciones: soportesT,                color: '#7c3aed', prefix: 'T',  rowLabel: t3('Tej./Lira', 'Can./Lyre', 'Auv./Lyre', 'Vord./Lyra', 'Tett./Lira', 'Telh./Lira') },
       { posiciones: perfilInf.posiciones,     color: '#b45309', prefix: 'I',  rowLabel: t3('Inf.', 'Low.', 'Inf.', 'Unt.', 'Inf.', 'Inf.') },
     ].filter(r => r.posiciones.length);
 
@@ -3554,7 +3555,7 @@ const App = (() => {
     if (ladosPresentes.size) leyenda.push({ txt: t3('brazo plegado (hasta el codo)', 'folded arm (up to the elbow)', 'bras replié (jusqu\'au coude)', 'eingeklappter Arm (bis zum Gelenk)', 'braccio chiuso (fino al gomito)', 'braço recolhido (até ao cotovelo)'),
       sim: (x, y) => `<rect x="${x}" y="${y - 5}" width="16" height="10" fill="rgba(37, 99, 235, 0.08)" stroke="#2563eb" stroke-width="0.8"/>` });
     const NOMBRE_PERFIL = {
-      T:  t3('soporte tejadillo', 'canopy bracket', 'support auvent', 'Vordachkonsole', 'supporto tettuccio', 'suporte telhado'),
+      T:  t3('soporte tejadillo / lira (tejadillo, lira posterior y lira trasera en el mismo soporte)', 'canopy / lyre bracket (canopy, rear lyre and back lyre on the same bracket)', 'support auvent / lyre (auvent, lyre arrière et lyre de coffre sur le même support)', 'Vordach-/Lyra-Konsole (Vordach, hintere Lyra und Gehäuse-Lyra auf derselben Konsole)', 'supporto tettuccio / lira (tettuccio, lira posteriore e lira cassonetto sullo stesso supporto)', 'suporte telhado / lira (telhado, lira posterior e lira traseira no mesmo suporte)'),
       LP: t3('soporte lira posterior', 'rear lyre bracket', 'support lyre arrière', 'hintere Lyra-Konsole', 'supporto lira posteriore', 'suporte lira posterior'),
       LC: t3('soporte lira / cofre', 'lyre / cassette bracket', 'support lyre / coffre', 'Lyra- / Kassettenkonsole', 'supporto lira / cassonetto', 'suporte lira / cofre'),
       I:  t3('soporte perfil inferior', 'lower profile bracket', 'support profil inférieur', 'Unterprofilkonsole', 'supporto profilo inferiore', 'suporte perfil inferior'),
@@ -3692,9 +3693,7 @@ const App = (() => {
     });
 
     [
-      { posiciones: tejadillo.posiciones,     badgeClass: 'badge-lira',           label: labels.badgeLira,           prefix: 'T' },
-      { posiciones: liraPosterior.posiciones, badgeClass: 'badge-lira-posterior', label: labels.badgeLiraPosterior,  prefix: 'LP' },
-      { posiciones: liraCofre.posiciones,     badgeClass: 'badge-lira-cofre',     label: labels.badgeLiraCofre,      prefix: 'LC' },
+      { posiciones: soportesT,                badgeClass: 'badge-lira',           label: t3('Soporte Tejadillo/Lira', 'Canopy/Lyre Bracket', 'Support Auvent/Lyre', 'Vordach-/Lyra-Konsole', 'Supporto Tettuccio/Lira', 'Suporte Telhado/Lira'), prefix: 'T' },
       { posiciones: perfilInf.posiciones,     badgeClass: 'badge-inferior',       label: labels.badgeInferior,       prefix: 'I' },
     ].forEach(grupo => {
       grupo.posiciones.forEach((cota, idx) => {
