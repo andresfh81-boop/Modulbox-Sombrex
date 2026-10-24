@@ -1,10 +1,11 @@
-const CACHE_NAME = 'modulbox-sbx-v37';
+const CACHE_NAME = 'modulbox-sbx-v38';
 const APP_SHELL = [
 './',
 './index.html',
 './manifest.json',
 './vendor/html2canvas.min.js',
 './vendor/jspdf.umd.min.js',
+'./perfiles-modelo.js',
 './icon-32.png',
 './icon-180.png',
 './icon-192.png',

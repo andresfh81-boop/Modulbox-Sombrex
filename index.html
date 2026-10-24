@@ -504,6 +504,7 @@
 
 <script src="vendor/html2canvas.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
+<script src="perfiles-modelo.js"></script>
 
 <script>
 const App = (() => {
@@ -3447,21 +3448,16 @@ const App = (() => {
     const txtSopMotor = t3('S. motor', 'Motor bkt', 'S. moteur', 'Motorlager', 'S. motore', 'S. motor');
     const txtSopPunta = t3('S. punta', 'End bkt', 'S. bout', 'Endlager', 'S. punta', 'S. ponta');
     const modeloTxt = refs.modelo.selectedOptions[0] ? refs.modelo.selectedOptions[0].text : '';
-    const CUBIERTA_PERFIL = {
-      OPEN: '',
-      SemiOPEN: 'M2 9 Q18 0 34 12',
-      SemiBOX: 'M2 9 Q20 -1 36 12 L36 26',
-      FullBOX: 'M2 9 Q20 -1 37 12 L37 32 Q37 38 31 38 L2 38 Z',
-    };
-    const iconoPerfil = (cx, espejo) => `
-      <g transform="translate(${cx}, ${yBar - 90}) scale(${espejo ? -1 : 1}, 1) translate(-20, 0)">
-        ${CUBIERTA_PERFIL[refs.modelo.value] ? `<path d="${CUBIERTA_PERFIL[refs.modelo.value]}" fill="none" stroke="#6b7280" stroke-width="1.6"/>` : ''}
-        <path d="M4 10 L24 10 L30 18 L30 30 L22 36 L8 36 L4 30 Z" fill="#fff7ed" stroke="#c2410c" stroke-width="1.6"/>
-        <circle cx="16" cy="21" r="6" fill="none" stroke="#6b7280" stroke-width="1.3"/>
-        <rect x="8" y="27" width="6" height="6" fill="#374151"/>
+    // Perfil lateral del modelo (perfiles-modelo.js), en espejo en el extremo derecho.
+    const ANCHO_PERFIL = 64;
+    const ALTO_PERFIL = 70;
+    const imgPerfil = typeof PERFILES_MODELO !== 'undefined' ? PERFILES_MODELO[refs.modelo.value] : null;
+    const iconoPerfil = (cx, espejo) => imgPerfil ? `
+      <g transform="translate(${cx}, 0) scale(${espejo ? -1 : 1}, 1) translate(${-cx}, 0)">
+        <image href="${imgPerfil}" x="${cx - ANCHO_PERFIL / 2}" y="${yBar - 42 - ALTO_PERFIL}" width="${ANCHO_PERFIL}" height="${ALTO_PERFIL}" preserveAspectRatio="xMidYMid meet"/>
       </g>
-      <text x="${cx}" y="${yBar - 40}" text-anchor="middle" font-size="9" font-weight="700" fill="#6b7280">${modeloTxt}</text>
-    `;
+      <text x="${cx}" y="${yBar - 30}" text-anchor="middle" font-size="9" font-weight="700" fill="#6b7280">${modeloTxt}</text>
+    ` : '';
     [
       { izq: true, texto: motor === 'izq' ? txtSopMotor : txtSopPunta },
       { izq: false, texto: motor === 'izq' ? txtSopPunta : txtSopMotor },
