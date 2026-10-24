@@ -193,6 +193,7 @@
       body.print-taller .col-cliente { display: none !important; }
       body.print-taller tr.taller-only { display: table-row !important; }
       body.print-taller span.taller-only { display: inline !important; }
+      body.print-taller .cota-a-taller { display: inline !important; }
     }
 
     /* Vista Taller en pantalla (botones Cliente/Taller): mismo cambio que la copia
@@ -202,7 +203,9 @@
     body.view-taller .col-taller { display: table-cell !important; }
     body.view-taller .col-cliente { display: none !important; }
     body.view-taller tr.taller-only { display: table-row !important; }
+    .cota-a-taller { display: none; }
     body.view-taller span.taller-only { display: inline !important; }
+    body.view-taller .cota-a-taller { display: inline !important; }
 
     .vista-toggle { margin-top: 0; margin-bottom: 12px; }
 
@@ -3185,7 +3188,25 @@ const App = (() => {
     const altoBrazo   = 64; 
     const anchoBrazo  = 62;
 
-    const baseCotaY    = yBar + 28; 
+    // Cota A (solo vista/copia Taller): de la cara interior del soporte motor/punta (tapa + 22)
+    // a la cara del soporte brazo que mira a ese extremo (cota ∓ 30). Va en una franja bajo la
+    // barra, con un carril por cada tramo que se solape con otro.
+    const ALTO_CARRIL_A = 18;
+    const tramosA = (grosorTapa && L > 0) ? brazos.filter(b => b.lado).map(b => ({
+      n: b.n,
+      letra: ladoLetra(b.lado),
+      desde: b.lado === 'izq' ? grosorTapa + 22 : b.cota + 30,
+      hasta: b.lado === 'izq' ? b.cota - 30 : L - grosorTapa - 22,
+      valor: calcularABrazo(b.cota, b.lado, L, grosorTapa),
+    })).filter(t => t.hasta > t.desde).sort((a, b) => a.desde - b.desde) : [];
+    const finCarrilA = [];
+    tramosA.forEach(t => {
+      let c = finCarrilA.findIndex(fin => fin < t.desde);
+      if (c === -1) { c = finCarrilA.length; finCarrilA.push(0); }
+      finCarrilA[c] = t.hasta;
+      t.carril = c;
+    });
+    const baseCotaY    = yBar + 28 + finCarrilA.length * ALTO_CARRIL_A;
     const labelWidthGap = 64;       
     const carrilHeight  = 34;       
 
@@ -3434,6 +3455,22 @@ const App = (() => {
         <text x="${item.x}" y="${targetY + 1}" text-anchor="middle" font-size="10.5" font-weight="bold" fill="${item.color}">${item.label}</text>
       `;
     });
+
+    let cotasA = '';
+    tramosA.forEach(t => {
+      const y = yBar + 24 + t.carril * ALTO_CARRIL_A;
+      const x1 = marginLeft + t.desde * scale;
+      const x2 = marginLeft + t.hasta * scale;
+      const xm = (x1 + x2) / 2;
+      cotasA += `
+        <line x1="${x1}" y1="${yBar + 8}" x2="${x1}" y2="${y + 5}" stroke="#c2410c" stroke-width="0.8" stroke-dasharray="2 2"/>
+        <line x1="${x2}" y1="${yBar + 8}" x2="${x2}" y2="${y + 5}" stroke="#c2410c" stroke-width="0.8" stroke-dasharray="2 2"/>
+        <line x1="${x1 + 2}" y1="${y}" x2="${x2 - 2}" y2="${y}" stroke="#c2410c" stroke-width="1" marker-start="url(#arrowStart)" marker-end="url(#arrowEnd)"/>
+        <rect x="${xm - 30}" y="${y - 7}" width="60" height="13" rx="3" fill="#fff7ed" stroke="#c2410c" stroke-width="1"/>
+        <text x="${xm}" y="${y + 3}" text-anchor="middle" font-size="9.5" font-weight="800" fill="#c2410c">A P${t.n}${t.letra}: ${t.valor}</text>
+      `;
+    });
+    if (cotasA) imageElements += `<g class="cota-a-taller">${cotasA}</g>`;
 
     const baseHeight = baseCotaY + (maxLaneUsed * carrilHeight) + 45;
     const perfilRows = [
