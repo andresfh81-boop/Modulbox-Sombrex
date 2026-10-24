@@ -3521,14 +3521,15 @@ const App = (() => {
     ].filter(r => r.posiciones.length);
 
     let rowY = baseHeight;
+    const imgSoporte = (prefijo) => typeof SOPORTES_PERFIL !== 'undefined' ? SOPORTES_PERFIL[prefijo] : null;
     perfilRows.forEach(row => {
       row.posiciones.forEach((cota, idx) => {
         const x = marginLeft + cota * scale;
         imageElements += `
-          <line x1="${x}" y1="${yBar + 8}" x2="${x}" y2="${rowY - 8}" stroke="${row.color}" stroke-width="1" stroke-dasharray="2 2"/>
+          <line x1="${x}" y1="${yBar + 8}" x2="${x}" y2="${rowY - 11}" stroke="${row.color}" stroke-width="1" stroke-dasharray="2 2"/>
           ${soportesEnChoque.has(row.prefix + (idx + 1)) ? `<circle class="marca-colision" cx="${x}" cy="${rowY}" r="8" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>` : ''}
-          <circle cx="${x}" cy="${rowY}" r="4" fill="#ffffff" stroke="${row.color}" stroke-width="1.5"/>
-          <text x="${x}" y="${rowY + 3}" text-anchor="middle" font-size="8" font-weight="900" fill="${row.color}">${row.prefix}${idx+1}</text>
+          ${imgSoporte(row.prefix) ? `<image href="${imgSoporte(row.prefix)}" x="${x - 11}" y="${rowY - 11}" width="22" height="22" preserveAspectRatio="xMidYMid meet"/>` : `<circle cx="${x}" cy="${rowY}" r="4" fill="#ffffff" stroke="${row.color}" stroke-width="1.5"/>`}
+          <text x="${x + 13}" y="${rowY + 3}" text-anchor="start" font-size="8" font-weight="900" fill="${row.color}">${row.prefix}${idx+1}</text>
         `;
       });
       imageElements += `<text x="${marginLeft - 14}" y="${rowY + 3}" text-anchor="end" font-size="9" font-weight="700" fill="${row.color}">${row.rowLabel}</text>`;
@@ -3559,7 +3560,7 @@ const App = (() => {
       I:  t3('soporte perfil inferior', 'lower profile bracket', 'support profil inférieur', 'Unterprofilkonsole', 'supporto profilo inferiore', 'suporte perfil inferior'),
     };
     perfilRows.forEach(row => leyenda.push({ txt: `${row.prefix}: ${NOMBRE_PERFIL[row.prefix]}`,
-      sim: (x, y) => `<circle cx="${x + 7}" cy="${y}" r="5" fill="#ffffff" stroke="${row.color}" stroke-width="1.5"/>` }));
+      sim: (x, y) => imgSoporte(row.prefix) ? `<image href="${imgSoporte(row.prefix)}" x="${x - 1}" y="${y - 8}" width="16" height="16" preserveAspectRatio="xMidYMid meet"/>` : `<circle cx="${x + 7}" cy="${y}" r="5" fill="#ffffff" stroke="${row.color}" stroke-width="1.5"/>` }));
     if (tramosA.length) leyenda.push({ clase: 'cota-a-taller', txt: t3('cota A: cara interior del soporte motor/punta → cara del soporte brazo', 'A dimension: inner face of motor/end bracket → arm bracket face', 'cote A : face intérieure du support moteur/bout → face du support de bras', 'Maß A: Innenseite Motor-/Endlager → Seite der Armkonsole', 'quota A: faccia interna supporto motore/punta → faccia supporto braccio', 'cota A: face interior do suporte motor/ponta → face do suporte do braço'),
       sim: (x, y) => `<line x1="${x + 1}" y1="${y}" x2="${x + 17}" y2="${y}" stroke="#c2410c" stroke-width="1.2" marker-start="url(#arrowStart)" marker-end="url(#arrowEnd)"/>` });
 
