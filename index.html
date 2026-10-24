@@ -1151,6 +1151,15 @@ const App = (() => {
     return lado === 'izq' ? Math.round(posicion + offset) : Math.round(L_mm - posicion + offset);
   };
 
+  // "A" (manual MODULBOX-400, diagrama "Posicionamiento del terminal"): misma fórmula que
+  // en MODULBOX-400, medida desde el extremo propio del brazo (Izq desde 0, Der desde L):
+  // cota − 30 (mitad soporte brazo) − 22 (mitad soporte punta/motor) − tapa de ese extremo.
+  const calcularABrazo = (posicion, lado, L_mm, grosorTapa) => {
+    if (!grosorTapa) return null;
+    const local = lado === 'izq' ? posicion : (L_mm - posicion);
+    return Math.round(local - 30 - 22 - grosorTapa);
+  };
+
   // Manual MODULBOX-400, 1.5: nº de soportes tejadillo/lira y nº de soportes perfil
   // inferior, según Línea (m). Independiente de Salida y nº de brazos.
   const PERFIL_L = [2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12];
@@ -1225,6 +1234,7 @@ const App = (() => {
       phGrosorTapa: "Ej. 19",
       thCotaTaller: "Cota barra cuadrada (mm)",
       colTerminalTaller: "Terminal barra de carga (mm)",
+      colABrazo: "A (mm)",
       optSi: "Sí",
       optNo: "No",
       optMotorIzq: "Izquierda (I)",
@@ -1352,6 +1362,7 @@ const App = (() => {
       phGrosorTapa: "e.g., 19",
       thCotaTaller: "Square bar dimension (mm)",
       colTerminalTaller: "Load bar terminal (mm)",
+      colABrazo: "A (mm)",
       optSi: "Yes",
       optNo: "No",
       optMotorIzq: "Left (L)",
@@ -1479,6 +1490,7 @@ const App = (() => {
       phGrosorTapa: "Ex. 19",
       thCotaTaller: "Cote barre carrée (mm)",
       colTerminalTaller: "Terminal barre de charge (mm)",
+      colABrazo: "A (mm)",
       optSi: "Oui",
       optNo: "Non",
       optMotorIzq: "Gauche (G)",
@@ -1606,6 +1618,7 @@ const App = (() => {
       phGrosorTapa: "Z.B. 19",
       thCotaTaller: "Maß Vierkantstab (mm)",
       colTerminalTaller: "Terminal Laststange (mm)",
+      colABrazo: "A (mm)",
       optSi: "Ja",
       optNo: "Nein",
       optMotorIzq: "Links (L)",
@@ -1733,6 +1746,7 @@ const App = (() => {
       phGrosorTapa: "Es. 19",
       thCotaTaller: "Quota barra quadra (mm)",
       colTerminalTaller: "Terminale barra di carico (mm)",
+      colABrazo: "A (mm)",
       optSi: "Sì",
       optNo: "No",
       optMotorIzq: "Sinistra (S)",
@@ -1860,6 +1874,7 @@ const App = (() => {
       phGrosorTapa: "Ex. 19",
       thCotaTaller: "Cota barra quadrada (mm)",
       colTerminalTaller: "Terminal barra de carga (mm)",
+      colABrazo: "A (mm)",
       optSi: "Sim",
       optNo: "Não",
       optMotorIzq: "Esquerda (E)",
@@ -3381,6 +3396,23 @@ const App = (() => {
       `;
     }
 
+    // Soporte motor y soporte punta: 20 mm cada uno, justo después de la tapa de su extremo.
+    // A escala real serían unos pocos píxeles, así que se dibujan con un ancho mínimo visible.
+    const SOPORTE_EXTREMO_MM = 20;
+    const anchoSopExtremo = Math.max(SOPORTE_EXTREMO_MM * scale, 7);
+    const txtSopMotor = t3('S. motor', 'Motor bkt', 'S. moteur', 'Motorlager', 'S. motore', 'S. motor');
+    const txtSopPunta = t3('S. punta', 'End bkt', 'S. bout', 'Endlager', 'S. punta', 'S. ponta');
+    [
+      { x: marginLeft + grosorTapa * scale, texto: motor === 'izq' ? txtSopMotor : txtSopPunta, anchor: 'start' },
+      { x: marginLeft + usableWidth - grosorTapa * scale - anchoSopExtremo, texto: motor === 'izq' ? txtSopPunta : txtSopMotor, anchor: 'end' },
+    ].forEach(s => {
+      const xTexto = s.anchor === 'start' ? s.x : s.x + anchoSopExtremo;
+      imageElements += `
+        <rect x="${s.x}" y="${yBar - 26}" width="${anchoSopExtremo}" height="52" rx="1.5" fill="#fdba74" stroke="#c2410c" stroke-width="1.5"/>
+        <text x="${xTexto}" y="${yBar - 31}" text-anchor="${s.anchor}" font-size="9" font-weight="700" fill="#c2410c">${s.texto} ${SOPORTE_EXTREMO_MM}</text>
+      `;
+    });
+
     const xMotor = (motor === 'izq') ? marginLeft : marginLeft + usableWidth;
     imageElements += `
       <g transform="translate(${xMotor}, ${yBar})">
@@ -3560,6 +3592,7 @@ const App = (() => {
         });
         const terminalTaller = grosorTapa ? terminal - grosorTapa : null;
         const soporteTaller = cotaTallerSoporte(b.cota, b.lado);
+        const aBrazo = calcularABrazo(b.cota, b.lado, L, grosorTapa);
         terminalRows += `
           <tr>
             <td>P${b.n}${letra}</td>
@@ -3567,6 +3600,7 @@ const App = (() => {
             <td class="col-cliente">${b.cota} mm</td>
             ${grosorTapa ? `<td class="col-taller"><b>${soporteTaller} mm</b></td>` : ''}
             ${grosorTapa ? `<td class="col-taller"><b>${terminalTaller} mm</b></td>` : ''}
+            ${grosorTapa ? `<td class="col-taller"><b>${aBrazo} mm</b></td>` : ''}
           </tr>
         `;
       });
@@ -3581,6 +3615,7 @@ const App = (() => {
                 <th class="col-cliente">${labels.colSoporte}</th>
                 ${grosorTapa ? `<th class="col-taller">${labels.colSoporteTaller}</th>` : ''}
                 ${grosorTapa ? `<th class="col-taller">${labels.colTerminalTaller}</th>` : ''}
+                ${grosorTapa ? `<th class="col-taller">${labels.colABrazo}</th>` : ''}
               </tr>
             </thead>
             <tbody>${terminalRows}</tbody>
