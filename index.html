@@ -3007,6 +3007,24 @@ const App = (() => {
       e.target.value = '';
       procesarPresupuesto(f);
     });
+    // Arrastrar el presupuesto (foto/PDF) a cualquier parte de la app hace lo mismo que «Subir presupuesto».
+    const hayArchivo = e => [...(e.dataTransfer?.types || [])].includes('Files');
+    let arrastres = 0;
+    const capaSoltar = document.createElement('div');
+    capaSoltar.style.cssText = 'position:fixed;inset:12px;z-index:9999;display:none;align-items:center;justify-content:center;text-align:center;padding:20px;border:4px dashed #c0102e;border-radius:16px;background:rgba(255,255,255,.88);font:700 26px system-ui,sans-serif;color:#c0102e;pointer-events:none';
+    document.body.appendChild(capaSoltar);
+    const mostrarCapa = v => { capaSoltar.textContent = refs.btnUploadPresupuesto.textContent; capaSoltar.style.display = v ? 'flex' : 'none'; };
+    window.addEventListener('dragenter', e => { if (!hayArchivo(e)) return; e.preventDefault(); arrastres++; mostrarCapa(true); });
+    window.addEventListener('dragover', e => { if (hayArchivo(e)) e.preventDefault(); });
+    window.addEventListener('dragleave', e => { if (hayArchivo(e) && --arrastres <= 0) { arrastres = 0; mostrarCapa(false); } });
+    window.addEventListener('drop', e => {
+      if (!hayArchivo(e)) return;
+      e.preventDefault();
+      arrastres = 0;
+      mostrarCapa(false);
+      const f = [...e.dataTransfer.files].find(x => x.type === 'application/pdf' || x.type.startsWith('image/'));
+      if (f) procesarPresupuesto(f);
+    });
     refs.btnSugerir.addEventListener('click', sugerirSoportes);
     refs.btnEditarTejadillo.addEventListener('click', () => editarCotasPerfil(refs.cotasTejadillo, 'tejadillo'));
     refs.btnEditarInferior.addEventListener('click', () => editarCotasPerfil(refs.cotasInferior, 'inferior'));
