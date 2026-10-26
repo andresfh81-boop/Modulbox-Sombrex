@@ -643,8 +643,9 @@ const App = (() => {
   };
 
   // Línea máx. por nº de brazos. Sombrex: las tablas 2 brazos llegan a 6 m y las de 3 brazos
-  // a 7 m; para 4 brazos se reutiliza el límite de MODULBOX-400 (aproximación).
-  const LINEA_MAX_POR_BRAZOS = { 2: 6000, 3: 7000, 4: 12000 };
+  // a 7 m, pero el manual (1.2 Líneas máximas) da L máx. 6,00 m: 3 brazos limitado a 6000 (Andrés, 26-oct-2026);
+  // para 4 brazos se reutiliza el límite de MODULBOX-400 (aproximación).
+  const LINEA_MAX_POR_BRAZOS = { 2: 6000, 3: 6000, 4: 12000 };
 
   // Tabla "L3_2/3brazos" del Excel Sombrex (para 4 brazos, tabla de MODULBOX-400):
   // margen (mm) desde el extremo del tubo hasta el primer/último soporte de pared.
