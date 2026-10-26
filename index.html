@@ -642,10 +642,39 @@ const App = (() => {
     return null;
   };
 
-  // Línea máx. por nº de brazos. Sombrex: las tablas 2 brazos llegan a 6 m y las de 3 brazos
-  // a 7 m, pero el manual (1.2 Líneas máximas) da L máx. 6,00 m: 3 brazos limitado a 6000 (Andrés, 26-oct-2026);
-  // para 4 brazos se reutiliza el límite de MODULBOX-400 (aproximación).
+  // Manual MODULBOX-400 SOMBREX (feb. 2023) pág. 3, «1.1 Líneas mínimas»: L mín. (mm) por salida.
+  // m2/m3 = motor 2/3 brazos; q2 = máquina 2 brazos; bcm/bcq = brazos cruzados motor/máquina.
+  // null = el manual no da esa combinación (no se fabrica). Manda sobre la tabla Excel.
+  const LINEA_MIN_MANUAL = {
+    1500: { m2: 2057, m3: 3055, q2: 2102, bcm: 1447, bcq: 1492 },
+    1750: { m2: 2307, m3: 3430, q2: 2352, bcm: 1572, bcq: 1617 },
+    2000: { m2: 2557, m3: 3805, q2: 2602, bcm: 1697, bcq: 1742 },
+    2250: { m2: 2927, m3: 4300, q2: 2972, bcm: 1942, bcq: 1987 },
+    2500: { m2: 3177, m3: 4675, q2: 3222, bcm: 2067, bcq: 2112 },
+    2750: { m2: 3427, m3: 5050, q2: null, bcm: 2192, bcq: null },
+    3000: { m2: 3677, m3: 5425, q2: null, bcm: 2317, bcq: null },
+    3250: { m2: 3927, m3: 5800, q2: null, bcm: 2442, bcq: null },
+    3500: { m2: 4177, m3: null, q2: null, bcm: 2567, bcq: null },
+  };
+  // undefined = salida o nº de brazos sin dato; null = combinación que el manual no da.
+  const getLineaMinimaManual = (S_mm, nbrazos, maquina, bc) => {
+    const fila = LINEA_MIN_MANUAL[S_mm];
+    if (!fila || ![2, 3].includes(nbrazos)) return undefined;
+    const q = maquina === 'SI';
+    if (nbrazos === 2 && bc === 'SI') return q ? fila.bcq : fila.bcm;
+    if (nbrazos === 3) return q ? null : fila.m3;
+    return q ? fila.q2 : fila.m2;
+  };
+
+  // Tipo de soportes (manual Sombrex pág. 3): A hasta S 2,00 m, B desde 2,25 m (en MODULBOX-400 B es desde 2,75).
+  const tipoSoportes = (S_mm) => S_mm <= 2000 ? 'A' : 'B';
+
+  // Línea máx. (manual Sombrex 1.2 «Líneas máximas»): 6,00 m con S hasta 3,00 m y 5,50 m con S 3,50 m
+  // (S 3,25 no sale en la tabla: se toma 5,50). Las tablas Excel daban 7 m con 3 brazos (Andrés, 26-oct-2026).
+  // Para 4 brazos (desactivado) se reutiliza el límite de MODULBOX-400.
   const LINEA_MAX_POR_BRAZOS = { 2: 6000, 3: 6000, 4: 12000 };
+  const getLineaMaxima = (nbrazos, S_mm) =>
+    nbrazos === 4 ? LINEA_MAX_POR_BRAZOS[4] : (LINEA_MAX_POR_BRAZOS[nbrazos] ? (S_mm > 3000 ? 5500 : 6000) : null);
 
   // Tabla "L3_2/3brazos" del Excel Sombrex (para 4 brazos, tabla de MODULBOX-400):
   // margen (mm) desde el extremo del tubo hasta el primer/último soporte de pared.
@@ -745,7 +774,9 @@ const App = (() => {
 
   // Reparte "total" soportes de forma simétrica entre L3 y (L - L3), según manual MODULBOX-400 1.4.
   const SOPORTE_OFFSET = 120;   // mm, cada soporte de pared respecto al soporte brazo (Tipo A: 1 lado, Tipo B: los 2)
-  const SOPORTE_EXTREMO_MAX = 350; // mm, si el soporte más cercano al extremo del tubo supera esto, se añade uno extra
+  const SOPORTE_EXTREMO_MAX = 350; // mm, manual pág. 4–5: si el soporte más cercano al extremo está a 350 o más, se añade otro a menos de 350
+  const SOPORTE_SOLAPE = 60;       // mm, dos soportes de pared/brazo a menos de esto entre centros se montan (aviso INTERFERENCIA del plano)
+  const SOPORTE_MOTOR_PUNTA = 22;  // mm, soporte motor/punta justo después de la tapa
   const SOPORTE_GAP_MAX = 2000;    // mm, ningún hueco entre soportes de pared puede superar esto (líneas largas)
   const SOPORTE_BORDE_MIN_TALLER = 30; // mm, mínimo desde el borde de la barra sin tapa (cota taller) a un soporte de pared
 
@@ -770,7 +801,7 @@ const App = (() => {
   // de los soportes brazo (Tipo A: 1 soporte al interior; Tipo B: 2, uno a cada lado),
   // más la regla de 350mm en los extremos, la placa de unión de cofre (L>7000) y la
   // regla de separación máxima de 2000mm entre soportes.
-  const sugerirPosicionesSoportes = (S_mm, L_mm, tipo, brazosOrdenados, tapa = 0) => {
+  const sugerirPosicionesSoportes = (S_mm, L_mm, tipo, brazosOrdenados, tapa = 0, perfilPos = []) => {
     if (!brazosOrdenados || !brazosOrdenados.length) return { error: 'sin_brazos' };
     let positions = [];
 
@@ -793,12 +824,16 @@ const App = (() => {
     positions = [...new Set(positions.map(Math.round))].sort((a, b) => a - b);
     if (!positions.length) return { error: 'sin_datos' };
 
-    if (positions[0] > SOPORTE_EXTREMO_MAX) {
-      positions.unshift(Math.round(positions[0] / 2));
+    // Los de brazo no se mueven; los de extremo y de relleno se apartan del tejadillo/liras/inferior.
+    const fijos = new Set(positions);
+
+    // Manual pág. 4–5: si L1 ≥ 350, segundo soporte con L2 máx. 350 (antes, a la mitad: L2 hasta 385).
+    if (positions[0] >= SOPORTE_EXTREMO_MAX) {
+      positions.unshift(Math.min(Math.round(positions[0] / 2), SOPORTE_EXTREMO_MAX - 1));
     }
     const last = positions.length - 1;
-    if ((L_mm - positions[last]) > SOPORTE_EXTREMO_MAX) {
-      positions.push(Math.round(L_mm - (L_mm - positions[last]) / 2));
+    if ((L_mm - positions[last]) >= SOPORTE_EXTREMO_MAX) {
+      positions.push(Math.max(Math.round(L_mm - (L_mm - positions[last]) / 2), L_mm - SOPORTE_EXTREMO_MAX + 1));
     }
     const minCota = tapa + SOPORTE_BORDE_MIN_TALLER;
     const maxCota = L_mm - tapa - SOPORTE_BORDE_MIN_TALLER;
@@ -806,8 +841,31 @@ const App = (() => {
     positions = [...new Set(positions)].sort((a, b) => a - b);
 
     positions = rellenarHuecosGrandes(positions, SOPORTE_GAP_MAX);
+    positions = apartarDePerfiles(positions, fijos, perfilPos, brazosOrdenados.map(b => b.cota), L_mm, tapa);
 
     return { positions, total: positions.length, partido };
+  };
+
+  // SP de extremo o de relleno encima de un soporte de tejadillo/lira/inferior (a menos de 30 mm entre
+  // centros): se aparta hasta 30 mm de él, primero hacia el centro de la línea y, si ahí choca, hacia el
+  // extremo, sin meterse en el soporte motor/punta (22 mm tras la tapa) ni a menos de 30 mm de su cara
+  // interior (criterio de Andrés, 26-oct-2026). Si no cabe en ningún lado, se deja y el plano avisa.
+  const apartarDePerfiles = (positions, fijos, perfilPos, cotasBrazo, L_mm, tapa) => {
+    if (!perfilPos.length) return positions;
+    const minCota = tapa + SOPORTE_MOTOR_PUNTA + DESPLAZ_BRAZO_PERFIL;
+    const maxCota = L_mm - minCota;
+    const out = positions.slice();
+    out.forEach((p, i) => {
+      if (fijos.has(p) || !chocaConPerfil(p, perfilPos)) return;
+      const q = perfilPos.reduce((a, b) => Math.abs(b - p) < Math.abs(a - p) ? b : a);
+      const haciaCentro = p <= L_mm / 2 ? 1 : -1;
+      const otros = [...out.filter((_, j) => j !== i), ...cotasBrazo];
+      const libre = c => c >= minCota && c <= maxCota && !chocaConPerfil(c, perfilPos)
+        && otros.every(o => Math.abs(o - c) >= SOPORTE_SOLAPE);
+      const nuevo = [q + haciaCentro * DESPLAZ_BRAZO_PERFIL, q - haciaCentro * DESPLAZ_BRAZO_PERFIL].find(libre);
+      if (nuevo != null) out[i] = nuevo;
+    });
+    return [...new Set(out)].sort((a, b) => a - b);
   };
 
   // Tabla "L1_2/3/4brazos" (+ _bc): distancia (mm) entre soportes brazo consecutivos ENFRENTADOS.
@@ -1214,6 +1272,14 @@ const App = (() => {
       .filter(([sel]) => sel.value === 'SI')
       .flatMap(([, num]) => posicionesEquidistantes(L, num.value !== '' ? Math.max(0, +num.value) : sugerido, tapa))
       .filter((c, i, arr) => arr.indexOf(c) === i);
+  };
+  // Cotas de los soportes del Perfil Inferior (mismo cálculo que el plano).
+  const posicionesSoportesInferior = (L) => {
+    if (refs.perfilInferior.value !== 'SI') return [];
+    const manual = parseCotas(refs.cotasInferior.value, L);
+    if (manual.length) return manual;
+    const num = refs.numInferior.value !== '' ? Math.max(0, +refs.numInferior.value) : sugerirNumInferior(L);
+    return posicionesEquidistantes(L, num, Number(refs.grosorTapa.value) || 0);
   };
 
   const i18n = {
@@ -1994,6 +2060,31 @@ const App = (() => {
     const map = { es, en, fr, de, it, pt };
     return map[currentLang] ?? en;
   };
+  // Aviso de línea fuera del manual Sombrex (pág. 3 mínimas, 1.2 máximas). lMin null = combinación sin dato.
+  const textoFueraManual = (L, S, n, lMin, lMax) => {
+    const caso = `S ${S} mm, ${n} ${t3('brazos', 'arms', 'bras', 'Arme', 'bracci', 'braços')}`;
+    if (lMin === null) return '⚠ ' + t3(
+      `El manual (pág. 3) no da línea mínima para esta combinación (${caso}, motor/máquina y brazos cruzados elegidos): no es una configuración del manual.`,
+      `The manual (p. 3) gives no minimum width for this combination (${caso}, chosen motor/gearbox and crossed arms): it is not a manual configuration.`,
+      `Le manuel (p. 3) ne donne pas de largeur minimale pour cette combinaison (${caso}, moteur/treuil et bras croisés choisis) : ce n'est pas une configuration du manuel.`,
+      `Das Handbuch (S. 3) nennt keine Mindeststrecke für diese Kombination (${caso}, gewählter Motor/Getriebe und gekreuzte Arme): keine Konfiguration des Handbuchs.`,
+      `Il manuale (pag. 3) non dà la lunghezza minima per questa combinazione (${caso}, motore/argano e bracci incrociati scelti): non è una configurazione del manuale.`,
+      `O manual (pág. 3) não dá largura mínima para esta combinação (${caso}, motor/máquina e braços cruzados escolhidos): não é uma configuração do manual.`);
+    if (lMin && L < lMin) return '⚠ ' + t3(
+      `Línea por debajo de la mínima del manual (pág. 3): ${L} mm < ${lMin} mm (${caso}).`,
+      `Width below the manual minimum (p. 3): ${L} mm < ${lMin} mm (${caso}).`,
+      `Largeur inférieure au minimum du manuel (p. 3) : ${L} mm < ${lMin} mm (${caso}).`,
+      `Strecke unter dem Minimum des Handbuchs (S. 3): ${L} mm < ${lMin} mm (${caso}).`,
+      `Lunghezza sotto il minimo del manuale (pag. 3): ${L} mm < ${lMin} mm (${caso}).`,
+      `Largura abaixo da mínima do manual (pág. 3): ${L} mm < ${lMin} mm (${caso}).`);
+    return '⚠ ' + t3(
+      `Línea por encima de la máxima del manual (1.2): ${L} mm > ${lMax} mm (${caso}).`,
+      `Width above the manual maximum (1.2): ${L} mm > ${lMax} mm (${caso}).`,
+      `Largeur supérieure au maximum du manuel (1.2) : ${L} mm > ${lMax} mm (${caso}).`,
+      `Strecke über dem Maximum des Handbuchs (1.2): ${L} mm > ${lMax} mm (${caso}).`,
+      `Lunghezza sopra il massimo del manuale (1.2): ${L} mm > ${lMax} mm (${caso}).`,
+      `Largura acima da máxima do manual (1.2): ${L} mm > ${lMax} mm (${caso}).`);
+  };
   // Mano del brazo en su código (B1-Izq, B2-Der…), abreviada en cada idioma.
   const ladoLetra = (lado) => lado === 'der' ? t3('Der', 'R', 'D', 'R', 'Dx', 'Dir') : t3('Izq', 'L', 'G', 'L', 'Sx', 'Esq');
 
@@ -2367,8 +2458,9 @@ const App = (() => {
     }
     brazosOrdenados.sort((a, b) => a.cota - b.cota);
 
-    const tipo = S <= 2500 ? 'A' : 'B';
-    const result = sugerirPosicionesSoportes(S, L, tipo, brazosOrdenados, Number(refs.grosorTapa.value) || 0);
+    const tipo = tipoSoportes(S);
+    const perfilPos = [...posicionesSoportesTejadilloLira(L), ...posicionesSoportesInferior(L)];
+    const result = sugerirPosicionesSoportes(S, L, tipo, brazosOrdenados, Number(refs.grosorTapa.value) || 0, perfilPos);
     if (result.error) {
       alert(labels.errSugerirSinDatos);
       return;
@@ -2676,6 +2768,20 @@ const App = (() => {
     }
     if (ladoArray.some(l => !l)) {
       alert(labels.errCalcularFaltaLado);
+      return;
+    }
+    // El cálculo automático nunca da algo fuera del manual: por debajo de la línea mínima, por encima
+    // de la máxima o en una combinación que el manual no da, no calcula (a mano se puede y solo avisa).
+    const lMinManual = getLineaMinimaManual(S, nbrazos, refs.maquina.value, bc);
+    const lMaxManual = getLineaMaxima(nbrazos, S);
+    if (lMinManual === null || (lMinManual && L < lMinManual) || (lMaxManual && L > lMaxManual)) {
+      alert(textoFueraManual(L, S, nbrazos, lMinManual, lMaxManual) + '\n' + t3(
+        'El cálculo automático no puede saltarse el manual. Puedes escribir las cotas a mano.',
+        'The automatic calculation cannot break the manual. You can type the positions by hand.',
+        'Le calcul automatique ne peut pas sortir du manuel. Vous pouvez saisir les cotes à la main.',
+        'Die automatische Berechnung darf das Handbuch nicht verletzen. Sie können die Maße von Hand eingeben.',
+        'Il calcolo automatico non può violare il manuale. Puoi scrivere le quote a mano.',
+        'O cálculo automático não pode fugir ao manual. Pode escrever as cotas à mão.'));
       return;
     }
     const result = calcularPosicionesBrazos(S, L, nbrazos, bc, ladoArray);
@@ -3002,12 +3108,14 @@ const App = (() => {
 
     const brazoRep = getBrazoPlegadoReal(S);
     // Tipo de configuración según manual MODULBOX-400 (1.3 Línea mínimas): A si S≤2,5m, B si S≥2,75m.
-    const tipoConfig = S > 0 ? (S <= 2500 ? 'A' : 'B') : null;
+    const tipoConfig = S > 0 ? tipoSoportes(S) : null;
     const soportesInfo = (L > 0 && S > 0 && [2,3,4].includes(numBrazosVal))
       ? getSoportesPared(S, L, numBrazosVal)
       : null;
     const lineaMinima = (S > 0 && [2,3,4].includes(numBrazosVal)) ? getLineaMinima(S, numBrazosVal) : null;
-    const lineaMaxima = LINEA_MAX_POR_BRAZOS[numBrazosVal] || null;
+    const lineaMinManual = (S > 0 && [2,3].includes(numBrazosVal)) ? getLineaMinimaManual(S, numBrazosVal, refs.maquina.value, refs.brazosCruzados.value) : undefined;
+    const fueraMinManual = L > 0 && (lineaMinManual === null || (lineaMinManual && L < lineaMinManual));
+    const lineaMaxima = getLineaMaxima(numBrazosVal, S);
     const excedeLineaMax = L > 0 && lineaMaxima != null && L > lineaMaxima;
 
     const paredes = parseParedes(L);
@@ -3168,6 +3276,16 @@ const App = (() => {
       `Wandkonsole weniger als ${SOPORTE_BORDE_MIN_TALLER} mm vom Stangenrand (Werkstattmaß):`,
       `Supporto a parete a meno di ${SOPORTE_BORDE_MIN_TALLER} mm dal bordo della barra (quota officina):`,
       `Suporte de parede a menos de ${SOPORTE_BORDE_MIN_TALLER} mm do bordo da barra (cota oficina):`)}</b></div>${paredesPegadasBorde.map(p => `<div>· SP${p.id}: ${Math.round(p.borde)} mm</div>`).join('')}</div>`;
+    // Cotas escritas a mano: la app las deja y solo avisa de lo que se salta el manual.
+    // Manual pág. 4–5: ningún extremo a 350 mm o más de su soporte de pared más cercano.
+    const extremosLargos = paredes.length ? [paredes[0], L - paredes[paredes.length - 1]].filter(d => d >= SOPORTE_EXTREMO_MAX) : [];
+    if (extremosLargos.length) alertHtml += `<div class="alert danger"><div>⚠ ${t3(
+      `Soporte de pared a ${extremosLargos.map(Math.round).join(' / ')} mm del extremo: el manual (pág. 4–5) pide otro soporte a menos de ${SOPORTE_EXTREMO_MAX} mm.`,
+      `Wall bracket ${extremosLargos.map(Math.round).join(' / ')} mm from the end: the manual (p. 4–5) requires another bracket closer than ${SOPORTE_EXTREMO_MAX} mm.`,
+      `Support mural à ${extremosLargos.map(Math.round).join(' / ')} mm de l'extrémité : le manuel (p. 4–5) demande un autre support à moins de ${SOPORTE_EXTREMO_MAX} mm.`,
+      `Wandkonsole ${extremosLargos.map(Math.round).join(' / ')} mm vom Ende: Das Handbuch (S. 4–5) verlangt eine weitere Konsole näher als ${SOPORTE_EXTREMO_MAX} mm.`,
+      `Supporto a parete a ${extremosLargos.map(Math.round).join(' / ')} mm dall'estremità: il manuale (pag. 4–5) chiede un altro supporto a meno di ${SOPORTE_EXTREMO_MAX} mm.`,
+      `Suporte de parede a ${extremosLargos.map(Math.round).join(' / ')} mm do extremo: o manual (pág. 4–5) pede outro suporte a menos de ${SOPORTE_EXTREMO_MAX} mm.`)}</div></div>`;
     if (overlapError) alertHtml += `<div class="alert danger"><div>${overlapError}</div></div>`;
     if (warnings.length && !overlapError && !colisionesPlegado.length) alertHtml += `<div class="alert info">${warnings.map(w=>`<div>ℹ ${w}</div>`).join('')}</div>`;
     if (soportesInfo) {
@@ -3183,6 +3301,9 @@ const App = (() => {
     }
     if (excedeLineaMax) {
       alertHtml += `<div class="alert danger"><div>${labels.errLineaMaximaPre}${numBrazosVal}${labels.errLineaMaximaMid}${lineaMaxima}mm (${L}mm)</div></div>`;
+    }
+    if (fueraMinManual) {
+      alertHtml += `<div class="alert danger"><div>${textoFueraManual(L, S, numBrazosVal, lineaMinManual, null)}</div></div>`;
     }
 
     refs.alertOut.innerHTML = alertHtml;
