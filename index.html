@@ -799,8 +799,8 @@ const App = (() => {
 
   // Calcula las posiciones de los soportes de pared a partir de las posiciones ya fijadas
   // de los soportes brazo (Tipo A: 1 soporte al interior; Tipo B: 2, uno a cada lado),
-  // más la regla de 350mm en los extremos, la placa de unión de cofre (L>7000) y la
-  // regla de separación máxima de 2000mm entre soportes.
+  // más la regla de 350mm en los extremos y la regla de separación máxima de 2000mm entre
+  // soportes. Sombrex no se puede unir: no hay unión de cofres (Andrés, 27-oct-2026).
   const sugerirPosicionesSoportes = (S_mm, L_mm, tipo, brazosOrdenados, tapa = 0, perfilPos = []) => {
     if (!brazosOrdenados || !brazosOrdenados.length) return { error: 'sin_brazos' };
     let positions = [];
@@ -813,13 +813,6 @@ const App = (() => {
         positions.push(b.cota + haciaCentro);
       }
     });
-
-    const partido = L_mm > 7000;
-    if (partido) {
-      const mid = L_mm / 2;
-      if (tipo === 'B') positions.push(mid - SOPORTE_OFFSET, mid + SOPORTE_OFFSET);
-      else positions.push(mid + SOPORTE_OFFSET);
-    }
 
     positions = [...new Set(positions.map(Math.round))].sort((a, b) => a - b);
     if (!positions.length) return { error: 'sin_datos' };
@@ -843,7 +836,7 @@ const App = (() => {
     positions = rellenarHuecosGrandes(positions, SOPORTE_GAP_MAX);
     positions = apartarDePerfiles(positions, fijos, perfilPos, brazosOrdenados.map(b => b.cota), L_mm, tapa);
 
-    return { positions, total: positions.length, partido };
+    return { positions, total: positions.length };
   };
 
   // SP de extremo o de relleno encima de un soporte de tejadillo/lira/inferior (a menos de 30 mm entre
