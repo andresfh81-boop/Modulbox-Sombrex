@@ -4021,8 +4021,9 @@ document.addEventListener('DOMContentLoaded', App.init);
 // Interruptor remoto (bloqueo.json del repo catalogo-llaza). Si esta app, o el
 // modelo elegido, está bloqueada, el plano no se ve e Imprimir/PDF/PNG no hacen
 // nada, sin ningún aviso. Sin conexión vale el último estado leído.
-// Llave: 5 toques seguidos en el título -> código. El aparato con la llave
-// buena (su PBKDF2 = "llave" de bloqueo.json) no se bloquea nunca.
+// Llave: 5 toques seguidos en el título -> código. El aparato guarda el PBKDF2
+// del código y no se bloquea nunca si el SHA-256 de ese PBKDF2 es la "llave"
+// de bloqueo.json (lo publicado no sirve para fabricar la llave).
 (function () {
   const APP = 'sombrex';
   const URL_BLOQUEO = 'https://andresfh81-boop.github.io/catalogo-llaza/bloqueo.json';
@@ -4032,7 +4033,13 @@ document.addEventListener('DOMContentLoaded', App.init);
   let cfg = {};
   try { cfg = JSON.parse(lee('llaza-bloqueo-cfg') || '{}'); } catch (e) {}
 
-  const conLlave = () => !!cfg.llave && lee('llaza-llave') === cfg.llave;
+  let huella = null;
+  const conLlave = () => !!cfg.llave && huella === cfg.llave;
+  async function calculaHuella() {
+    const k = lee('llaza-llave');
+    huella = k ? [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(k)))].map((x) => x.toString(16).padStart(2, '0')).join('') : null;
+    aplicar();
+  }
   const bloqueadaSinLlave = () => {
     const a = cfg[APP] || {};
     const modelo = document.getElementById('modelo');
@@ -4082,16 +4089,17 @@ document.addEventListener('DOMContentLoaded', App.init);
     toques = [];
     const codigo = prompt('🔑');
     if (codigo === null) return;
-    if (!codigo) { guarda('llaza-llave', null); aplicar(); return; }
-    const llave = await derivaLlave(codigo);
-    guarda('llaza-llave', llave);
+    guarda('llaza-llave', codigo ? await derivaLlave(codigo) : null);
+    await calculaHuella();
+    if (!codigo) return;
     await consultar();
     // Si no coincide con bloqueo.json, se enseña para copiarla allí.
-    if (llave !== cfg.llave) prompt('🔑 bloqueo.json → "llave"', llave);
+    if (huella !== cfg.llave) prompt('🔑 bloqueo.json → "llave"', huella);
   });
 
   new MutationObserver(aplicar).observe(document.getElementById('planoOut'), { childList: true });
   aplicar();
+  calculaHuella();
   consultar();
 })();
 </script>
