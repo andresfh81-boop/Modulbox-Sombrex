@@ -4014,5 +4014,86 @@ document.addEventListener('DOMContentLoaded', App.init);
   updateOfflineBanner();
 </script>
 
+<style>body.app-bloqueada #planoOut { visibility: hidden !important; }
+#llaveBadge { position: fixed; right: 8px; bottom: 8px; z-index: 9999; font-size: 18px; opacity: .7; pointer-events: none; }
+@media print { #llaveBadge { display: none; } }</style>
+<script>
+// Interruptor remoto (bloqueo.json del repo catalogo-llaza). Si esta app, o el
+// modelo elegido, está bloqueada, el plano no se ve e Imprimir/PDF/PNG no hacen
+// nada, sin ningún aviso. Sin conexión vale el último estado leído.
+// Llave: 5 toques seguidos en el título -> código. El aparato con la llave
+// buena (su PBKDF2 = "llave" de bloqueo.json) no se bloquea nunca.
+(function () {
+  const APP = 'sombrex';
+  const URL_BLOQUEO = 'https://andresfh81-boop.github.io/catalogo-llaza/bloqueo.json';
+  const BOTONES = ['btnPrint', 'btnPrintTaller', 'btnPDF', 'btnExport', 'btnAmpliarPlano'];
+  const lee = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const guarda = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
+  let cfg = {};
+  try { cfg = JSON.parse(lee('llaza-bloqueo-cfg') || '{}'); } catch (e) {}
+
+  const conLlave = () => !!cfg.llave && lee('llaza-llave') === cfg.llave;
+  const bloqueadaSinLlave = () => {
+    const a = cfg[APP] || {};
+    const modelo = document.getElementById('modelo');
+    return !!a.bloqueado || (!!modelo && (a.modelos || []).includes(modelo.value));
+  };
+  const bloqueada = () => !conLlave() && bloqueadaSinLlave();
+
+  function aplicar() {
+    document.body.classList.toggle('app-bloqueada', bloqueada());
+    let badge = document.getElementById('llaveBadge');
+    const ver = conLlave() && bloqueadaSinLlave();
+    if (ver && !badge) {
+      badge = document.createElement('div');
+      badge.id = 'llaveBadge';
+      badge.textContent = '🔓';
+      document.body.appendChild(badge);
+    } else if (!ver && badge) badge.remove();
+  }
+
+  async function consultar() {
+    try {
+      const r = await fetch(URL_BLOQUEO, { cache: 'no-store' });
+      if (r.ok) { cfg = await r.json(); guarda('llaza-bloqueo-cfg', JSON.stringify(cfg)); }
+    } catch (e) {}
+    aplicar();
+  }
+
+  // Los clics se paran antes de llegar a los botones (fase de captura).
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('button');
+    if (b && BOTONES.includes(b.id) && bloqueada()) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+  document.addEventListener('change', aplicar, true);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) consultar(); });
+  setInterval(consultar, 5 * 60 * 1000);
+
+  async function derivaLlave(codigo) {
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(codigo), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: new TextEncoder().encode('llaza-bloqueo'), iterations: 200000 }, base, 256);
+    return [...new Uint8Array(bits)].map((x) => x.toString(16).padStart(2, '0')).join('');
+  }
+  let toques = [];
+  document.querySelector('header h1').addEventListener('click', async () => {
+    const ahora = Date.now();
+    toques = toques.filter((t) => ahora - t < 3000).concat(ahora);
+    if (toques.length < 5) return;
+    toques = [];
+    const codigo = prompt('🔑');
+    if (codigo === null) return;
+    if (!codigo) { guarda('llaza-llave', null); aplicar(); return; }
+    const llave = await derivaLlave(codigo);
+    guarda('llaza-llave', llave);
+    await consultar();
+    // Si no coincide con bloqueo.json, se enseña para copiarla allí.
+    if (llave !== cfg.llave) prompt('🔑 bloqueo.json → "llave"', llave);
+  });
+
+  new MutationObserver(aplicar).observe(document.getElementById('planoOut'), { childList: true });
+  aplicar();
+  consultar();
+})();
+</script>
 </body>
 </html>
