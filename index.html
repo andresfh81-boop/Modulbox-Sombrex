@@ -187,6 +187,22 @@
       .plan { box-shadow: none; border: none; padding: 0; background: #fff; }
       .plan-notes-container { border: none; padding: 14px 0 0 0; }
       .plan-notes-container textarea { border: none; background: transparent; padding: 0; resize: none; overflow: hidden; }
+      /* El plano siempre en la primera hoja: cabecera y plano primero (con altura máxima para
+         que quepan), luego los avisos y las tablas. Ninguna tabla ni aviso se parte entre hojas;
+         si una tabla no cabe entera en una hoja, se corta entre filas y repite la cabecera. */
+      .plan { display: flex; flex-direction: column; }
+      #planoOut { display: contents; }
+      #planoOut > * { order: 3; }
+      #planoOut > .plan-header { order: 0; }
+      #planoOut > .plano-click-zoom { order: 1; outline: none; }
+      #alertOut { order: 2; }
+      .plano-click-zoom > svg { max-height: 150mm; }
+      .plano-lens { display: none !important; }
+      .plan-header, .plano-click-zoom, .alert, .terminal-table, .plan-notes-container { break-inside: avoid; page-break-inside: avoid; }
+      .summary-table { break-inside: avoid; page-break-inside: avoid; }
+      .summary-table thead { display: table-header-group; }
+      .summary-table tr { break-inside: avoid; page-break-inside: avoid; }
+      .terminal-table h4 { break-after: avoid; page-break-after: avoid; }
       /* Copia para taller (btnPrintTaller): invierte qué columnas de cota se ven
          y recupera las filas/bloques que en la versión cliente están ocultos. */
       body.print-taller .col-taller { display: table-cell !important; }
