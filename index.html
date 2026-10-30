@@ -264,7 +264,10 @@
     .plano-lens-inner { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
     .plano-lens-inner svg { display: block; }
 
-    .plano-toolbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+    .plano-toolbar { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    /* Cliente / Taller también encima del plano (los mismos que abajo, van a la par). */
+    .vista-arriba { display: flex; gap: 6px; margin-right: auto; }
+    .vista-arriba .view-toggle-btn { width: auto; padding: 6px 14px; font-size: 0.85rem; }
     .btn-zoom-plano {
       margin-top: 0; width: auto; padding: 6px 14px; font-size: 0.85rem;
       background: #6b7280;
@@ -523,6 +526,10 @@
   <div class="panel plan">
     <div id="alertOut"></div>
     <div class="plano-toolbar no-print">
+      <div class="vista-arriba">
+        <button id="btnVerClienteArriba" class="view-toggle-btn active" type="button">👤 Cliente</button>
+        <button id="btnVerTallerArriba" class="view-toggle-btn" type="button">🔧 Taller</button>
+      </div>
       <button id="btnAmpliarPlano" class="btn-zoom-plano" type="button">🔍 Ampliar plano</button>
     </div>
     <div id="planoOut">
@@ -2484,6 +2491,8 @@ const App = (() => {
     refs.btnPrint.textContent = labels.btnPrint;
     refs.btnPrintTaller.textContent = labels.btnPrintTaller;
     refs.btnVerCliente.textContent = labels.btnVerCliente;
+    document.getElementById('btnVerClienteArriba').textContent = labels.btnVerCliente;
+    document.getElementById('btnVerTallerArriba').textContent = labels.btnVerTaller;
     refs.btnVerTaller.textContent = labels.btnVerTaller;
     refs.btnAmpliarPlano.textContent = labels.btnAmpliarPlano;
     refs.planoOut.querySelectorAll('.plano-click-zoom').forEach(el => el.title = labels.tituloAmpliarClick);
@@ -3048,6 +3057,8 @@ const App = (() => {
     document.body.classList.toggle('view-taller', activo);
     refs.btnVerTaller.classList.toggle('active', activo);
     refs.btnVerCliente.classList.toggle('active', !activo);
+    document.getElementById('btnVerTallerArriba').classList.toggle('active', activo);
+    document.getElementById('btnVerClienteArriba').classList.toggle('active', !activo);
     if (repintar && antes !== activo) render(); // cada vista, en el idioma de su copia
   };
 
@@ -3265,6 +3276,8 @@ const App = (() => {
     refs.btnClear.addEventListener('click', clearData);
     refs.btnVerCliente.addEventListener('click', () => setVistaTaller(false));
     refs.btnVerTaller.addEventListener('click', () => setVistaTaller(true));
+    document.getElementById('btnVerClienteArriba').addEventListener('click', () => setVistaTaller(false));
+    document.getElementById('btnVerTallerArriba').addEventListener('click', () => setVistaTaller(true));
     refs.btnAmpliarPlano.addEventListener('click', abrirPlanoModal);
     refs.planoOut.addEventListener('click', (e) => {
       if (!e.target.closest('.plano-click-zoom')) return;
@@ -3364,6 +3377,7 @@ const App = (() => {
     const grosorTapa = Number(refs.grosorTapa.value) || 0;
     refs.btnPrintTaller.style.display = grosorTapa ? '' : 'none';
     refs.btnVerTaller.parentElement.style.display = grosorTapa ? '' : 'none';
+    document.querySelector('.vista-arriba').style.display = grosorTapa ? '' : 'none';
     if (!grosorTapa) setVistaTaller(false);
     const pedido  = refs.pedido.value  || '—';
     const cliente = refs.cliente.value || '—';
