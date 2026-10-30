@@ -529,6 +529,7 @@
       <div class="vista-arriba">
         <button id="btnVerClienteArriba" class="view-toggle-btn active" type="button">👤 Cliente</button>
         <button id="btnVerTallerArriba" class="view-toggle-btn" type="button">🔧 Taller</button>
+        <button id="btnImprimirArriba" class="btn-zoom-plano" type="button" title="Imprime la copia que estás viendo (Cliente o Taller)">🖨 Imprimir</button>
       </div>
       <button id="btnAmpliarPlano" class="btn-zoom-plano" type="button">🔍 Ampliar plano</button>
     </div>
@@ -2493,6 +2494,11 @@ const App = (() => {
     refs.btnVerCliente.textContent = labels.btnVerCliente;
     document.getElementById('btnVerClienteArriba').textContent = labels.btnVerCliente;
     document.getElementById('btnVerTallerArriba').textContent = labels.btnVerTaller;
+    document.getElementById('btnImprimirArriba').textContent = t3('🖨 Imprimir', '🖨 Print', '🖨 Imprimer', '🖨 Drucken', '🖨 Stampa', '🖨 Imprimir');
+    document.getElementById('btnImprimirArriba').title = t3('Imprime la copia que estás viendo (Cliente o Taller)',
+      'Prints the copy on screen (Customer or Workshop)', 'Imprime la copie affichée (Client ou Atelier)',
+      'Druckt die angezeigte Kopie (Kunde oder Werkstatt)', 'Stampa la copia visualizzata (Cliente o Officina)',
+      'Imprime a cópia que está a ver (Cliente ou Oficina)');
     refs.btnVerTaller.textContent = labels.btnVerTaller;
     refs.btnAmpliarPlano.textContent = labels.btnAmpliarPlano;
     refs.planoOut.querySelectorAll('.plano-click-zoom').forEach(el => el.title = labels.tituloAmpliarClick);
@@ -3278,6 +3284,9 @@ const App = (() => {
     refs.btnVerTaller.addEventListener('click', () => setVistaTaller(true));
     document.getElementById('btnVerClienteArriba').addEventListener('click', () => setVistaTaller(false));
     document.getElementById('btnVerTallerArriba').addEventListener('click', () => setVistaTaller(true));
+    // Imprime la copia que se está viendo.
+    document.getElementById('btnImprimirArriba').addEventListener('click', () =>
+      document.body.classList.contains('view-taller') ? printTaller() : window.print());
     refs.btnAmpliarPlano.addEventListener('click', abrirPlanoModal);
     refs.planoOut.addEventListener('click', (e) => {
       if (!e.target.closest('.plano-click-zoom')) return;
@@ -4295,7 +4304,7 @@ document.addEventListener('DOMContentLoaded', App.init);
 (function () {
   const APP = 'sombrex';
   const URL_BLOQUEO = 'https://andresfh81-boop.github.io/catalogo-llaza/bloqueo.json';
-  const BOTONES = ['btnPrint', 'btnPrintTaller', 'btnPDF', 'btnExport', 'btnAmpliarPlano'];
+  const BOTONES = ['btnPrint', 'btnPrintTaller', 'btnImprimirArriba', 'btnPDF', 'btnExport', 'btnAmpliarPlano'];
   const lee = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const guarda = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
   let cfg = {};
