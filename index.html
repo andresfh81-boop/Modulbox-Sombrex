@@ -107,6 +107,11 @@
     button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
     button.secondary { background: #6b7280; margin-top: 12px; }
     button.secondary:hover { background: #4b5563; }
+    .presup-elegir { font-size: 0.8rem; margin: 6px 0 4px; display: flex; flex-direction: column; gap: 4px; }
+    .presup-elegir[hidden] { display: none; }
+    button.presup-opcion { margin-top: 0; padding: 6px 10px; font-size: 0.8rem; text-align: left; background: #e5e7eb; color: #374151; border: 1px solid var(--border-color); }
+    button.presup-opcion:hover { background: #d1d5db; }
+    button.presup-opcion.active { background: #1f2937; color: #fff; }
     button.export { background: #10b981; margin-top: 12px; }
     button.export:hover { background: #059669; }
     button.pdf { background: #2563eb; margin-top: 12px; }
@@ -314,6 +319,7 @@
     </div>
     <button id="btnUploadPresupuesto" class="secondary" type="button" style="margin-top:0;">📤 Subir presupuesto (foto/PDF)</button>
     <input id="filePresupuesto" type="file" accept="image/*,application/pdf" hidden>
+    <div id="presupElegir" class="presup-elegir" hidden></div>
     <details id="ocrDebugBox" hidden style="margin-top:6px;">
       <summary id="ocrDebugSummary" style="cursor:pointer;font-size:0.8rem;color:var(--text-muted);">🔍 Ver texto leído (OCR)</summary>
       <textarea id="ocrDebugText" readonly rows="8" style="width:100%;margin-top:4px;font-family:monospace;font-size:0.7rem;"></textarea>
@@ -1366,6 +1372,12 @@ const App = (() => {
       notifPresupuestoVacio: "📤 No se reconoció ningún dato del presupuesto",
       notifPresupuestoErr: "📤 No se pudo leer el presupuesto",
       notifPedidoManual: "📤 Leído. Escribe el Nº de pedido a mano (no se pudo leer)",
+      presupVarios: "Este pedido trae {n} MODULBOX Sombrex. Elige cuál cargar (luego puedes volver aquí para cargar el siguiente):",
+      presupPos: "Pos.",
+      presupUds: "uds.",
+      presupBrazos: "brazos",
+      notifSinModulbox: "📤 El pedido no trae ningún MODULBOX Sombrex: solo se ha rellenado el Nº de pedido y el cliente",
+      notifOtraApp: "📤 El pedido solo trae MODULBOX sin Sombrex: cárgalo en el configurador MODULBOX (aquí solo se ha rellenado el Nº de pedido y el cliente)",
       errSugerirInvalido: "No se pueden sugerir soportes: la línea es demasiado corta para esta combinación.",
       errSugerirSinDatos: "No hay datos de posición para esta combinación de Salida/Línea.",
       confirmSugerir: "Esto sustituirá el contenido actual de \"Soportes de PARED\" por la sugerencia automática. ¿Continuar?",
@@ -1494,6 +1506,12 @@ const App = (() => {
       notifPresupuestoVacio: "📤 No data recognised from the quote",
       notifPresupuestoErr: "📤 Could not read the quote",
       notifPedidoManual: "📤 Read. Type the order no. manually (couldn't read it)",
+      presupVarios: "This order has {n} MODULBOX Sombrex awnings. Choose which one to load (you can come back here for the next one):",
+      presupPos: "Pos.",
+      presupUds: "units",
+      presupBrazos: "arms",
+      notifSinModulbox: "📤 The order has no MODULBOX Sombrex: only the order number and customer were filled in",
+      notifOtraApp: "📤 The order only has MODULBOX without Sombrex: load it in the MODULBOX configurator (only order number and customer filled in here)",
       errSugerirInvalido: "Can't suggest brackets: the width is too short for this combination.",
       errSugerirSinDatos: "No position data for this Projection/Width combination.",
       confirmSugerir: "This will replace the current content of \"WALL Brackets\" with the automatic suggestion. Continue?",
@@ -1622,6 +1640,12 @@ const App = (() => {
       notifPresupuestoVacio: "📤 Aucune donnée reconnue dans le devis",
       notifPresupuestoErr: "📤 Impossible de lire le devis",
       notifPedidoManual: "📤 Lu. Saisir le nº de commande à la main (illisible)",
+      presupVarios: "Cette commande contient {n} MODULBOX Sombrex. Choisissez lequel charger (revenez ici pour le suivant) :",
+      presupPos: "Pos.",
+      presupUds: "u.",
+      presupBrazos: "bras",
+      notifSinModulbox: "📤 La commande ne contient aucun MODULBOX Sombrex : seuls le nº de commande et le client ont été remplis",
+      notifOtraApp: "📤 La commande ne contient que des MODULBOX sans Sombrex : chargez-la dans le configurateur MODULBOX (ici, seuls le nº de commande et le client ont été remplis)",
       errSugerirInvalido: "Impossible de suggérer les supports : la largeur est trop courte pour cette combinaison.",
       errSugerirSinDatos: "Pas de données de position pour cette combinaison Projection/Largeur.",
       confirmSugerir: "Cela remplacera le contenu actuel de « Supports MURAUX » par la suggestion automatique. Continuer ?",
@@ -1750,6 +1774,12 @@ const App = (() => {
       notifPresupuestoVacio: "📤 Keine Daten aus dem Angebot erkannt",
       notifPresupuestoErr: "📤 Angebot konnte nicht gelesen werden",
       notifPedidoManual: "📤 Gelesen. Bestellnr. von Hand eingeben (nicht lesbar)",
+      presupVarios: "Diese Bestellung enthält {n} MODULBOX Sombrex. Wählen Sie, welche geladen werden soll (danach hier die nächste):",
+      presupPos: "Pos.",
+      presupUds: "Stk.",
+      presupBrazos: "Arme",
+      notifSinModulbox: "📤 Die Bestellung enthält keine MODULBOX Sombrex: nur Bestellnummer und Kunde wurden ausgefüllt",
+      notifOtraApp: "📤 Die Bestellung enthält nur MODULBOX ohne Sombrex: im Konfigurator MODULBOX laden (hier nur Bestellnummer und Kunde ausgefüllt)",
       errSugerirInvalido: "Stützen können nicht vorgeschlagen werden: Die Strecke ist für diese Kombination zu kurz.",
       errSugerirSinDatos: "Keine Positionsdaten für diese Ausgang/Strecke-Kombination.",
       confirmSugerir: "Dies ersetzt den aktuellen Inhalt von „WAND-Stützen\" durch den automatischen Vorschlag. Fortfahren?",
@@ -1878,6 +1908,12 @@ const App = (() => {
       notifPresupuestoVacio: "📤 Nessun dato riconosciuto dal preventivo",
       notifPresupuestoErr: "📤 Impossibile leggere il preventivo",
       notifPedidoManual: "📤 Letto. Scrivi il nº ordine a mano (non leggibile)",
+      presupVarios: "Questo ordine contiene {n} MODULBOX Sombrex. Scegli quale caricare (poi torna qui per il successivo):",
+      presupPos: "Pos.",
+      presupUds: "pz.",
+      presupBrazos: "bracci",
+      notifSinModulbox: "📤 L'ordine non contiene nessun MODULBOX Sombrex: compilati solo nº ordine e cliente",
+      notifOtraApp: "📤 L'ordine contiene solo MODULBOX senza Sombrex: caricalo nel configuratore MODULBOX (qui compilati solo nº ordine e cliente)",
       errSugerirInvalido: "Impossibile suggerire le staffe: la lunghezza è troppo corta per questa combinazione.",
       errSugerirSinDatos: "Nessun dato di posizione per questa combinazione Sporgenza/Lunghezza.",
       confirmSugerir: "Questo sostituirà il contenuto attuale di \"Staffe a MURO\" con il suggerimento automatico. Continuare?",
@@ -2006,6 +2042,12 @@ const App = (() => {
       notifPresupuestoVacio: "📤 Nenhum dado reconhecido do orçamento",
       notifPresupuestoErr: "📤 Não foi possível ler o orçamento",
       notifPedidoManual: "📤 Lido. Escreve o nº de encomenda à mão (ilegível)",
+      presupVarios: "Esta encomenda tem {n} MODULBOX Sombrex. Escolha qual carregar (depois volte aqui para o seguinte):",
+      presupPos: "Pos.",
+      presupUds: "un.",
+      presupBrazos: "braços",
+      notifSinModulbox: "📤 A encomenda não tem nenhum MODULBOX Sombrex: só foram preenchidos o nº de encomenda e o cliente",
+      notifOtraApp: "📤 A encomenda só tem MODULBOX sem Sombrex: carregue-a no configurador MODULBOX (aqui só foram preenchidos o nº de encomenda e o cliente)",
       errSugerirInvalido: "Não é possível sugerir suportes: a largura é muito curta para esta combinação.",
       errSugerirSinDatos: "Sem dados de posição para esta combinação Projeção/Largura.",
       confirmSugerir: "Isto substituirá o conteúdo atual de \"Suportes de PAREDE\" pela sugestão automática. Continuar?",
@@ -2132,6 +2174,7 @@ const App = (() => {
     filePresupuesto: document.getElementById('filePresupuesto'),
     ocrDebugBox: document.getElementById('ocrDebugBox'),
     ocrDebugText: document.getElementById('ocrDebugText'),
+    presupElegir: document.getElementById('presupElegir'),
     btnSugerir:      document.getElementById('btnSugerir'),
     btnCalcularBrazos: document.getElementById('btnCalcularBrazos'),
     btnPrint:        document.getElementById('btnPrint'),
@@ -2324,6 +2367,7 @@ const App = (() => {
 
     document.querySelectorAll('.brazo-input').forEach(el => {
       el.addEventListener('input', scheduleRender);
+      if (el.tagName === 'SELECT') el.addEventListener('change', reintentarCalculoAuto);
     });
 
     if (triggerRender) render();
@@ -2447,16 +2491,16 @@ const App = (() => {
     saveState();
   };
 
-  const sugerirSoportes = () => {
+  // auto = true: lo lanza la subida del presupuesto. Sin avisos ni confirmación (lo que hubiera
+  // era de otro toldo); devuelve si ha podido calcular.
+  const sugerirSoportes = (auto = false) => {
     const L = Number(refs.linea.value) || 0;
     const S = Number(refs.salida.value) || 0;
     const nbrazos = +refs.numBrazos.value || 0;
     const labels = i18n[currentLang];
+    const aviso = (msg) => { if (!auto) alert(msg); return false; };
 
-    if (![2, 3, 4].includes(nbrazos) || L <= 0 || S <= 0) {
-      alert(labels.errSugerirInvalido);
-      return;
-    }
+    if (![2, 3, 4].includes(nbrazos) || L <= 0 || S <= 0) return aviso(labels.errSugerirInvalido);
     const brazosOrdenados = [];
     for (let i = 1; i <= nbrazos; i++) {
       const cota = document.getElementById('cota' + i)?.value;
@@ -2464,25 +2508,20 @@ const App = (() => {
       if (cota === '' || cota === undefined || !lado) { brazosOrdenados.push(null); continue; }
       brazosOrdenados.push({ cota: +cota, lado });
     }
-    if (brazosOrdenados.some(b => !b)) {
-      alert(labels.errSugerirSinBrazos);
-      return;
-    }
+    if (brazosOrdenados.some(b => !b)) return aviso(labels.errSugerirSinBrazos);
     brazosOrdenados.sort((a, b) => a.cota - b.cota);
 
     const tipo = tipoSoportes(S);
     const perfilPos = [...posicionesSoportesTejadilloLira(L), ...posicionesSoportesInferior(L)];
     const result = sugerirPosicionesSoportes(S, L, tipo, brazosOrdenados, Number(refs.grosorTapa.value) || 0, perfilPos);
-    if (result.error) {
-      alert(labels.errSugerirSinDatos);
-      return;
-    }
-    if (refs.cotasPared.value.trim() && !confirm(labels.confirmSugerir)) return;
+    if (result.error) return aviso(labels.errSugerirSinDatos);
+    if (!auto && refs.cotasPared.value.trim() && !confirm(labels.confirmSugerir)) return false;
 
     refs.cotasPared.value = result.positions.join(', ');
     render();
     saveState();
-    showNotification(labels.notifSugerir);
+    if (!auto) showNotification(labels.notifSugerir);
+    return true;
   };
 
   // ===== Subir presupuesto de LLAZA + autocompletado por OCR =====
@@ -2606,19 +2645,24 @@ const App = (() => {
     return data.text || '';
   };
 
+  // Se leen TODAS las páginas: en un pedido con varios modelos los MODULBOX pueden ir en la 2ª, 3ª…
   const textoDesdePDF = async (file) => {
     const buf = await file.arrayBuffer();
     const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
-    const page = await pdf.getPage(1);
-    const tc = await page.getTextContent();
-    const txt = tc.items.map(i => i.str).join(' ').trim();
-    if (txt.replace(/\s/g, '').length > 40) return txt;      // el PDF ya trae capa de texto
-    const viewport = page.getViewport({ scale: 2 });          // si no, rasterizar y OCR
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-    return ocrImagen(canvas);
+    const paginas = [];
+    for (let n = 1; n <= pdf.numPages; n++) {
+      const page = await pdf.getPage(n);
+      const tc = await page.getTextContent();
+      const txt = tc.items.map(i => i.str + (i.hasEOL ? '\n' : ' ')).join('').trim();
+      if (txt.replace(/\s/g, '').length > 40) { paginas.push(txt); continue; } // el PDF ya trae capa de texto
+      const viewport = page.getViewport({ scale: 2 });          // si no, rasterizar y OCR
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      paginas.push(await ocrImagen(canvas));
+    }
+    return paginas.join('\n');
   };
 
   const extraerTextoPresupuesto = (file) =>
@@ -2630,12 +2674,10 @@ const App = (() => {
   const normOCR = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/\r/g, '').replace(/[·•|]/g, ' ').replace(/[—–]/g, ' ');
 
-  const parsePresupuestoLlaza = (raw) => {
-    const U = normOCR(raw).toUpperCase();
+  // Cabecera del pedido (se repite en cada página): Nº de pedido y cliente.
+  const parseCabeceraLlaza = (U) => {
     const out = {};
     const grab = (re) => { const m = U.match(re); return m ? m[1].trim() : null; };
-    const has = (re) => re.test(U);
-    const yn = (v) => v == null ? null : (/\bS[I1]\b|\bYES\b/.test(v) ? 'SI' : /\bNO\b/.test(v) ? 'NO' : null);
 
     // Nº de pedido: 7-9 dígitos tras "Num. Pedido". Tolerante a erratas de OCR
     // (O->0, I/l->1, S->5, B->8) y acotado para no coger la ref. de material (10-11),
@@ -2653,21 +2695,38 @@ const App = (() => {
     let ped =
          normPed(U.match(/PEDIDO\D{0,60}?([0-9OoQIilL!|SsB]{7,10})(?![0-9OoQIilL!|SsB])/))
       || normPed(U.match(/(?:^|[^0-9])([0-9]{7,9})(?![0-9])[^0-9]{0,20}[0-3]?[0-9][.\/\-][0-1]?[0-9][.\/\-](?:20)?[0-9]{2}/)); // nº seguido de una fecha dd.mm.aaaa (va encima de "Fecha pedido")
+    if (!ped) ped = normPed(U.match(/\bPROF[.\s:]*([0-9OQIL!|SB]{7,10})(?![0-9OQIL!|SB])/)); // proforma
+    if (!ped) ped = normPed(U.match(/\bNUMBER\s*:\s*([0-9OQIL!|SB]{7,10})(?![0-9OQIL!|SB])/)); // pedido en inglés
     if (ped) out.pedido = ped;
 
     // Cliente: "Su ref:" (en el cuerpo del artículo, se lee siempre) y si no,
     // "Observaciones". Se descartan cabeceras que el OCR pueda colar detrás.
-    const JUNK = /ACCESORIO|PARA\s+TODO|AUTOMATIZ|PERSIANA|ESTUDIOS|PROYECTOS|SHIP|PARTY|CONDICION|TRANSPORT|FABRICAC|PEDIDO|UNIT|PRICE|MATERIAL|DESCR|QUANTITY|MODULBOX|RECACRIL/;
+    const JUNK = /ACCESORIO|PARA\s+TODO|AUTOMATIZ|PERSIANA|ESTUDIOS|PROYECTOS|SHIP|PARTY|CONDICION|TRANSPORT|FABRICAC|PEDIDO|NUMBER|UNIT|PRICE|MATERIAL|DESCR|QUANTITY|MODULBOX|RECACRIL/;
     const limpiaCli = (v) => {
       if (!v) return null;
-      v = v.replace(/\s+(?:UNIT|PRICE|ITEM|MATERIAL|DESCR|QUANTITY|MODULBOX)\b[\s\S]*$/, '').replace(/\s{2,}/g, ' ').trim();
+      v = v.replace(/\s+(?:UNIT|PRICE|ITEM|MATERIAL|DESCR|QUANTITY|MODULBOX)\b[\s\S]*$/, '')
+        .replace(/(?:\s+[0-9][0-9.,]*)+$/, '') // nº de posición y material de la 1ª línea pegados detrás
+        .replace(/(?:\s*\/?\s*\d+\/\d+)+$/, '') // "DURANT 1/3 / 2/3 / 3/3": nº de toldo del cliente
+        .replace(/\s{2,}/g, ' ').trim();
       return (v.length >= 3 && v.length <= 40 && !JUNK.test(v)) ? v : null;
     };
-    let cli = limpiaCli(grab(/SU\s*REF[\s:.\-]{0,4}([A-Z][A-Z0-9.'\/-]*(?: [A-Z0-9][A-Z0-9.'\/-]*){0,3})/));
+    let cli = limpiaCli(grab(/(?:SU|YOUR)\s*REF[\s:.\-]{0,4}([A-Z][A-Z0-9.'\/-]*(?: [A-Z0-9][A-Z0-9.'\/-]*){0,3})/));
+    if (!cli) cli = limpiaCli(grab(/PED\.?\s*CLI\.?[\s:]{0,4}([A-Z][A-Z0-9.'\/-]*(?: [A-Z0-9][A-Z0-9.'\/-]*){0,3})/));
     if (!cli) cli = limpiaCli(grab(/OBSERVACIONES[\s:.\-]{0,4}([A-Z][A-Z.'\/-]*(?: [A-Z][A-Z.'\/-]*){0,3})/));
+    // En inglés, si "Your ref." va vacío: la línea de debajo de "Client num. 200697".
+    if (!cli) cli = limpiaCli(grab(/CLIENT\s*NUM[.\s]*\d+\s*\n\s*([^\n]+)/));
     if (cli) out.cliente = cli;
+    return out;
+  };
 
-    let cofre = grab(/TIPO\s*DE\s*COFRE[:\s]*([A-Z ]{3,20}?)(?:\s{2,}|$)/);
+  // Datos de UN toldo: cofre, línea, salida, brazos, lado del motor, perfiles…
+  const parseToldoLlaza = (U) => {
+    const out = {};
+    const grab = (re) => { const m = U.match(re); return m ? m[1].trim() : null; };
+    const has = (re) => re.test(U);
+    const yn = (v) => v == null ? null : (/\bS[I1]\b|\bYES\b/.test(v) ? 'SI' : /\bNO\b/.test(v) ? 'NO' : null);
+
+    let cofre = grab(/(?:TIPO\s*DE\s*COFRE|AWNING\s*CONFIGURATION)[:\s]*([A-Z ]{3,20}?)(?:\s{2,}|\n|$)/);
     if (!cofre) cofre = has(/FULL\s*BOX/) ? 'FULL BOX' : has(/SEMI\s*BOX/) ? 'SEMI BOX'
                      : has(/SEMI\s*OPEN/) ? 'SEMI OPEN' : has(/\bOPEN\b/) ? 'OPEN' : null;
     if (cofre) {
@@ -2677,10 +2736,10 @@ const App = (() => {
       if (m) out.modelo = m;
     }
 
-    const lin = grab(/LINEA\s*TOTAL[:\s]*([0-9]{3,5})\s*MM/) || grab(/LINEA[^0-9]{0,10}([0-9]{3,5})\s*MM/);
+    const lin = grab(/(?:LINEA|TOTAL\s*WIDTH)\s*(?:TOTAL)?[:\s]*([0-9]{3,5})\s*MM/) || grab(/LINEA[^0-9]{0,10}([0-9]{3,5})\s*MM/);
     if (lin) out.linea = lin;
 
-    const salM = U.match(/(?:MEDIDA\s*DE\s*BRAZOS|MODELO\s*Y\s*MEDIDA)[\s\S]{0,60}?(\d{1,2})\s*[.,]\s*(\d{1,2})\s*M(?![A-LN-Z])/)
+    const salM = U.match(/(?:MEDIDA\s*DE\s*BRAZOS|MODELO\s*Y\s*MEDIDA|LENGTH\s*OF\s*ARMS)[\s\S]{0,60}?(\d{1,2})\s*[.,]\s*(\d{1,2})\s*M(?![A-LN-Z])/)
               || U.match(/\bBRAZOS[\s\S]{0,40}?(\d{1,2})\s*[.,]\s*(\d{1,2})\s*M(?![A-LN-Z])/);
     if (salM) {
       const mm = Math.round(parseFloat(salM[1] + '.' + salM[2]) * 1000);
@@ -2690,37 +2749,132 @@ const App = (() => {
       }
     }
 
-    const nb = grab(/N[UO]?MERO\s*DE\s*BRAZOS[:\s]*([234])/) || grab(/\b([234])\s*UN\b/);
+    const nb = grab(/(?:N[UO]?MERO\s*DE\s*BRAZOS|NUMBER\s*OF\s*ARMS)[:\s]*([234])/) || grab(/\b([234])\s*UN\b/);
     if (nb && nb !== '4') out.numBrazos = nb; // 4 brazos: no se fabrica en Sombrex (opción desactivada)
 
-    let lado = grab(/LADO\s*ACCIONAMIENTO[:\s]*([A-Z]+)/);
+    let lado = grab(/(?:LADO\s*ACCIONAMIENTO|SIDE\s*OF\s*OPERATION)[:\s]*([A-Z]+)/);
     if (!lado) lado = has(/\bIZQUIERDA\b/) ? 'IZQUIERDA' : has(/\bDERECHA\b/) ? 'DERECHA' : null;
-    if (lado) { if (/IZQ/.test(lado)) out.ladoMotor = 'izq'; else if (/DER/.test(lado)) out.ladoMotor = 'der'; }
+    if (lado) { if (/IZQ|LEFT/.test(lado)) out.ladoMotor = 'izq'; else if (/DER|RIGHT/.test(lado)) out.ladoMotor = 'der'; }
 
     const bc = yn(grab(/BRAZOS\s*CRUZADOS[:\s]*([A-Z0-9]+)/));
     if (bc) out.brazosCruzados = bc;
 
-    const acc = grab(/ACCIONAMIENTO[:\s]*([A-Z]+)/);
+    const acc = grab(/(?:ACCIONAMIENTO|TYPE\s*OF\s*OPERATION)[:\s]*(MANUAL|MOTOR)/);
     if (acc) { if (/MANUAL/.test(acc)) out.maquina = 'SI'; else if (/MOTOR/.test(acc)) out.maquina = 'NO'; }
 
-    const lira = yn(grab(/CON\s*PERFIL\s*LIRA[:\s]*([A-Z0-9]+)/));
+    const lira = yn(grab(/(?:CON\s*PERFIL\s*LIRA|WITH\s*LIRA\s*PROFILE)[:\s]*([A-Z0-9]+)/));
     if (lira) out.perfilLiraCofre = lira;
-    const post = yn(grab(/(?:CON\s*)?PERFIL\s*POSTERIOR[:\s]*([A-Z0-9]+)/));
+    const post = yn(grab(/(?:(?:CON\s*)?PERFIL\s*POSTERIOR|WITH\s*BACK\s*PROFILE)[:\s]*([A-Z0-9]+)/));
     if (post) out.perfilLiraPosterior = post;
     if (has(/PERFIL\s*SELLADOR\s*TEJADILLO[:\s]*[A-Z]/)) out.perfilTejadillo = 'SI';
 
     return out;
   };
 
+  const parsePresupuestoLlaza = (raw) => {
+    const U = normOCR(raw).toUpperCase();
+    return { ...parseCabeceraLlaza(U), ...parseToldoLlaza(U) };
+  };
+
+  // Un pedido puede traer ELYA, KÜADBOX y varios MODULBOX. Se trocea por posiciones
+  // ("000030 90005405909 1,00 MODULBOX-400…" o, en inglés, "000010 90005415909 MODULBOX 4.00 SET") y se leen solo los MODULBOX, cada uno por
+  // separado, para no mezclar la línea de uno con el lado de otro.
+  // Devuelve null si no se encuentran posiciones (foto mal leída: se lee todo junto, como antes).
+  // El MODULBOX Sombrex lleva "Con Sombrex: Accionado Motor" ("With Sombrex: …" en inglés); el normal no lleva la línea.
+  const ES_APP_SOMBREX = true;
+  const esSombrex = (txt) => /(?:CON|WITH)\s*SOMBREX[:\s]*(?!NO\b)[A-Z]/.test(txt);
+  const modulboxDelPresupuesto = (U) => {
+    const cortes = [...U.matchAll(/(?:^|\s)(\d{6})\s+\d{10,12}(?:(?:\s+[A-Z][A-Z0-9-]*)?\s+(\d+)[.,]\d{2}\b)?/g)];
+    if (!cortes.length) return null;
+    const modulbox = cortes.map((m, i) => ({
+      pos: String(+m[1]),
+      uds: m[2] ? +m[2] : 1,
+      txt: U.slice(m.index, i + 1 < cortes.length ? cortes[i + 1].index : undefined),
+    }))
+      .filter(b => /M[O0]DUL\s?B[O0]X/.test(b.txt));
+    const lista = modulbox.filter(b => esSombrex(b.txt) === ES_APP_SOMBREX)
+      .map(b => ({ ...parseToldoLlaza(b.txt), _pos: b.pos, _uds: b.uds }));
+    lista.deLaOtraApp = modulbox.length - lista.length;
+    return lista;
+  };
+
+  // Tras subir un presupuesto, brazos y soportes de pared se calculan solos. Con 3 brazos la mano
+  // del central no viene en el pedido: se calcula al elegirla (si no se han escrito cotas a mano).
+  let calculoPendiente = false;
+  const calcularTodoAuto = () => calcularPosicionBrazos(true) && sugerirSoportes(true);
+  const faltaLado = () => Array.from({ length: +refs.numBrazos.value || 0 }, (_, i) => document.getElementById('lado' + (i + 1))?.value).some(l => !l);
+  const textoCalculoAuto = (ok) => ok
+    ? t3('Brazos y soportes calculados (se pueden cambiar)', 'Arms and brackets calculated (can be changed)',
+      'Bras et supports calculés (modifiables)', 'Arme und Stützen berechnet (änderbar)',
+      'Bracci e staffe calcolati (modificabili)', 'Braços e suportes calculados (podem ser alterados)')
+    : faltaLado()
+      ? t3('Elige la mano del brazo central y se calculan brazos y soportes',
+        'Choose the side of the central arm and arms and brackets will be calculated',
+        'Choisissez le côté du bras central et bras et supports seront calculés',
+        'Seite des mittleren Arms wählen, dann werden Arme und Stützen berechnet',
+        'Scegli il lato del braccio centrale e bracci e staffe verranno calcolati',
+        'Escolha o lado do braço central e braços e suportes serão calculados')
+      : t3('Brazos y soportes sin calcular: pulsa «Calcular posición brazos» para ver el motivo o escríbelos a mano',
+        'Arms and brackets not calculated: press «Calculate arm position» to see why, or type them by hand',
+        'Bras et supports non calculés : appuyez sur « Calculer la position des bras » pour voir pourquoi, ou saisissez-les à la main',
+        'Arme und Stützen nicht berechnet: «Armposition berechnen» drücken, um den Grund zu sehen, oder von Hand eingeben',
+        'Bracci e staffe non calcolati: premi «Calcola posizione bracci» per vedere il motivo o scrivili a mano',
+        'Braços e suportes não calculados: carregue em «Calcular posição dos braços» para ver o motivo ou escreva-os à mão');
+  const reintentarCalculoAuto = () => {
+    if (!calculoPendiente || faltaLado()) return;
+    calculoPendiente = false;
+    const n = +refs.numBrazos.value || 0;
+    const lados = Array.from({ length: n }, (_, i) => document.getElementById('lado' + (i + 1))?.value);
+    const hayCotas = lados.some((_, i) => document.getElementById('cota' + (i + 1))?.value) || refs.cotasPared.value.trim();
+    if (!hayCotas) showNotification(textoCalculoAuto(calcularTodoAuto()));
+  };
+
   const aplicarPresupuesto = (parcial) => {
-    const n = Object.keys(parcial).length;
+    const n = Object.keys(parcial).filter(k => k[0] !== '_').length;
     if (!n) { showNotification(i18n[currentLang].notifPresupuestoVacio); return; }
-    applyState(Object.assign(getState(), parcial));
+    const datos = Object.fromEntries(Object.entries(parcial).filter(([k]) => k[0] !== '_'));
+    // Si trae el toldo, las cotas que hubiera eran de otro toldo: se vacían y se recalculan.
+    const traeToldo = ['linea', 'salida', 'numBrazos'].some(k => parcial[k]);
+    if (traeToldo) Object.assign(datos, { brazosData: [], cotasPared: '', cotasTejadillo: '', cotasInferior: '' });
+    applyState(Object.assign(getState(), datos));
     render();
+    let calc = '';
+    calculoPendiente = false;
+    if (traeToldo) {
+      const ok = calcularTodoAuto();
+      calculoPendiente = !ok && faltaLado();
+      calc = ' · ' + textoCalculoAuto(ok);
+    }
     saveState();
-    showNotification(parcial.pedido
+    showNotification((parcial.pedido
       ? i18n[currentLang].notifPresupuestoOK.replace('{n}', n)
-      : i18n[currentLang].notifPedidoManual);
+      : i18n[currentLang].notifPedidoManual) + calc);
+  };
+
+  // Con varios MODULBOX en el pedido, un botón por toldo. Se quedan a la vista para
+  // cargar el siguiente cuando se acabe el plano del primero.
+  const mostrarEleccionModulbox = (lista) => {
+    const box = refs.presupElegir;
+    const L = i18n[currentLang];
+    box.innerHTML = '';
+    box.hidden = lista.length < 2;
+    if (box.hidden) return;
+    const msg = document.createElement('div');
+    msg.textContent = L.presupVarios.replace('{n}', lista.length);
+    box.appendChild(msg);
+    lista.forEach(k => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'presup-opcion';
+      const lado = k.ladoMotor === 'izq' ? L.optMotorIzq : k.ladoMotor === 'der' ? L.optMotorDer : '?';
+      b.textContent = `${L.presupPos} ${k._pos}${k._uds > 1 ? ` (${k._uds} ${L.presupUds})` : ''}`
+        + ` · ${k.modelo || '?'} · L ${k.linea || '?'} mm · S ${k.salida || '?'} mm · ${k.numBrazos || '?'} ${L.presupBrazos} · ${lado}`;
+      b.addEventListener('click', () => {
+        box.querySelectorAll('.presup-opcion').forEach(x => x.classList.toggle('active', x === b));
+        aplicarPresupuesto(k);
+      });
+      box.appendChild(b);
+    });
   };
 
   const procesarPresupuesto = async (file) => {
@@ -2728,12 +2882,15 @@ const App = (() => {
     const btn = refs.btnUploadPresupuesto;
     btn.disabled = true;
     btn.textContent = i18n[currentLang].btnUploadLeyendo;
+    mostrarEleccionModulbox([]);
     try {
       await cargarPresupLibs();
       const texto = await extraerTextoPresupuesto(file);
-      const parcial = parsePresupuestoLlaza(texto);
+      const U = normOCR(texto).toUpperCase();
+      const parcial = parseCabeceraLlaza(U);
+      const toldos = modulboxDelPresupuesto(U);
       console.log('[presupuesto] texto OCR:', texto);
-      console.log('[presupuesto] detectado:', parcial);
+      console.log('[presupuesto] detectado:', parcial, toldos);
       refs.ocrDebugText.value = texto;
       refs.ocrDebugBox.hidden = false;
       // La tabla del Nº de pedido (arriba a la izq., con recuadros) se lee mal en la
@@ -2753,7 +2910,14 @@ const App = (() => {
         }
         refs.ocrDebugText.value = dbg;
       }
-      aplicarPresupuesto(parcial);
+      // Cada toldo lleva su posición en el Nº de pedido (54007673-30) para distinguir los planos.
+      const conPos = (k) => ({ ...parcial, ...k, ...(parcial.pedido ? { pedido: `${parcial.pedido}-${k._pos}` } : {}) });
+      if (!toldos) aplicarPresupuesto({ ...parcial, ...parseToldoLlaza(U) });
+      else if (!toldos.length) {
+        aplicarPresupuesto(parcial);
+        showNotification(i18n[currentLang][toldos.deLaOtraApp ? 'notifOtraApp' : 'notifSinModulbox']);
+      } else if (toldos.length === 1) aplicarPresupuesto(conPos(toldos[0]));
+      else mostrarEleccionModulbox(toldos.map(conPos));
     } catch (e) {
       console.error('[presupuesto]', e);
       showNotification(i18n[currentLang].notifPresupuestoErr);
@@ -2763,30 +2927,27 @@ const App = (() => {
     }
   };
 
-  const calcularPosicionBrazos = () => {
+  // auto = true: igual que en sugerirSoportes.
+  const calcularPosicionBrazos = (auto = false) => {
     const L = Number(refs.linea.value) || 0;
     const S = Number(refs.salida.value) || 0;
     const nbrazos = +refs.numBrazos.value || 0;
     const bc = refs.brazosCruzados.value;
     const labels = i18n[currentLang];
+    const aviso = (msg) => { if (!auto) alert(msg); return false; };
 
-    if (![2, 3, 4].includes(nbrazos) || L <= 0 || S <= 0) {
-      alert(labels.errCalcularInvalido);
-      return;
-    }
+    if (![2, 3, 4].includes(nbrazos) || L <= 0 || S <= 0) return aviso(labels.errCalcularInvalido);
     const ladoArray = [];
     for (let i = 1; i <= nbrazos; i++) {
       ladoArray.push(document.getElementById('lado' + i)?.value || '');
     }
-    if (ladoArray.some(l => !l)) {
-      alert(labels.errCalcularFaltaLado);
-      return;
-    }
+    if (ladoArray.some(l => !l)) return aviso(labels.errCalcularFaltaLado);
     // El cálculo automático nunca da algo fuera del manual: por debajo de la línea mínima, por encima
     // de la máxima o en una combinación que el manual no da, no calcula (a mano se puede y solo avisa).
     const lMinManual = getLineaMinimaManual(S, nbrazos, refs.maquina.value, bc);
     const lMaxManual = getLineaMaxima(nbrazos, S);
     if (lMinManual === null || (lMinManual && L < lMinManual) || (lMaxManual && L > lMaxManual)) {
+      if (auto) return false;
       alert(textoFueraManual(L, S, nbrazos, lMinManual, lMaxManual) + '\n' + t3(
         'El cálculo automático no puede saltarse el manual. Puedes escribir las cotas a mano.',
         'The automatic calculation cannot break the manual. You can type the positions by hand.',
@@ -2794,24 +2955,15 @@ const App = (() => {
         'Die automatische Berechnung darf das Handbuch nicht verletzen. Sie können die Maße von Hand eingeben.',
         'Il calcolo automatico non può violare il manuale. Puoi scrivere le quote a mano.',
         'O cálculo automático não pode fugir ao manual. Pode escrever as cotas à mão.'));
-      return;
+      return false;
     }
     const result = calcularPosicionesBrazos(S, L, nbrazos, bc, ladoArray);
-    if (result.error === 'sin_datos') {
-      alert(labels.errCalcularInvalido);
-      return;
-    }
-    if (result.error === 'faltan_lados') {
-      alert(labels.errCalcularFaltaLado);
-      return;
-    }
-    if (result.error === 'fuera_de_rango') {
-      alert(labels.errCalcularFueraRango);
-      return;
-    }
+    if (result.error === 'sin_datos') return aviso(labels.errCalcularInvalido);
+    if (result.error === 'faltan_lados') return aviso(labels.errCalcularFaltaLado);
+    if (result.error === 'fuera_de_rango') return aviso(labels.errCalcularFueraRango);
 
     const hasExisting = ladoArray.some((_, idx) => document.getElementById('cota' + (idx + 1))?.value);
-    if (hasExisting && !confirm(labels.confirmCalcularBrazos)) return;
+    if (!auto && hasExisting && !confirm(labels.confirmCalcularBrazos)) return false;
 
     const perfilPos = posicionesSoportesTejadilloLira(L);
     result.positions.forEach((pos, idx) => {
@@ -2826,7 +2978,8 @@ const App = (() => {
     });
     render();
     saveState();
-    showNotification(labels.notifCalcularBrazos);
+    if (!auto) showNotification(labels.notifCalcularBrazos);
+    return true;
   };
 
   const printTaller = () => {
@@ -3037,10 +3190,10 @@ const App = (() => {
       const f = [...e.dataTransfer.files].find(x => x.type === 'application/pdf' || x.type.startsWith('image/'));
       if (f) procesarPresupuesto(f);
     });
-    refs.btnSugerir.addEventListener('click', sugerirSoportes);
+    refs.btnSugerir.addEventListener('click', () => sugerirSoportes());
     refs.btnEditarTejadillo.addEventListener('click', () => editarCotasPerfil(refs.cotasTejadillo, 'tejadillo'));
     refs.btnEditarInferior.addEventListener('click', () => editarCotasPerfil(refs.cotasInferior, 'inferior'));
-    refs.btnCalcularBrazos.addEventListener('click', calcularPosicionBrazos);
+    refs.btnCalcularBrazos.addEventListener('click', () => calcularPosicionBrazos());
     refs.holgura.addEventListener('input', () => { if (recolocarInteriores()) scheduleRender(); });
     refs.btnPrint.addEventListener('click', () => window.print());
     refs.btnPrintTaller.addEventListener('click', printTaller);
