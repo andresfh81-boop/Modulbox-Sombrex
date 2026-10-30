@@ -108,6 +108,8 @@
     button.secondary { background: #6b7280; margin-top: 12px; }
     button.secondary:hover { background: #4b5563; }
     .presup-elegir { font-size: 0.8rem; margin: 6px 0 4px; display: flex; flex-direction: column; gap: 4px; }
+    .presup-arrastrar { font-size: 0.75rem; color: var(--text-muted, #6b7280); text-align: center; margin: 4px 0 0; }
+    @media (hover: none) { .presup-arrastrar { display: none; } }
     .presup-elegir[hidden] { display: none; }
     button.presup-opcion { margin-top: 0; padding: 6px 10px; font-size: 0.8rem; text-align: left; background: #e5e7eb; color: #374151; border: 1px solid var(--border-color); }
     button.presup-opcion:hover { background: #d1d5db; }
@@ -319,6 +321,7 @@
     </div>
     <button id="btnUploadPresupuesto" class="secondary" type="button" style="margin-top:0;">📤 Subir presupuesto (foto/PDF)</button>
     <input id="filePresupuesto" type="file" accept="image/*,application/pdf" hidden>
+    <div id="txtArrastrar" class="presup-arrastrar">o arrastra el PDF o la foto a cualquier parte de esta ventana</div>
     <div id="presupElegir" class="presup-elegir" hidden></div>
     <details id="ocrDebugBox" hidden style="margin-top:6px;">
       <summary id="ocrDebugSummary" style="cursor:pointer;font-size:0.8rem;color:var(--text-muted);">🔍 Ver texto leído (OCR)</summary>
@@ -332,6 +335,16 @@
       <div>
         <label id="lblCliente" for="cliente">👤 Cliente</label>
         <input id="cliente" type="text" placeholder="Nombre del cliente" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label id="lblIdiomaCliente" for="idiomaCliente">🌐 Idioma plano Cliente</label>
+        <select id="idiomaCliente"><option value="es">Español</option><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="it">Italiano</option><option value="pt">Português</option></select>
+      </div>
+      <div>
+        <label id="lblIdiomaTaller" for="idiomaTaller">🔧 Idioma plano Taller</label>
+        <select id="idiomaTaller"><option value="es">Español</option><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="it">Italiano</option><option value="pt">Português</option></select>
       </div>
     </div>
 
@@ -2144,6 +2157,8 @@ const App = (() => {
 
   const refs = {
     pedido:          document.getElementById('pedido'),
+    idiomaCliente:   document.getElementById('idiomaCliente'),
+    idiomaTaller:    document.getElementById('idiomaTaller'),
     cliente:         document.getElementById('cliente'),
     modelo:          document.getElementById('modelo'),
     maquina:         document.getElementById('maquina'),
@@ -2202,6 +2217,8 @@ const App = (() => {
     const state = {
       pedido:     refs.pedido.value,
       cliente:    refs.cliente.value,
+      idiomaCliente: refs.idiomaCliente.value,
+      idiomaTaller: refs.idiomaTaller.value,
       modelo:     refs.modelo.value,
       maquina:    refs.maquina.value,
       linea:      refs.linea.value,
@@ -2239,6 +2256,8 @@ const App = (() => {
     ignoreInput = true;
     refs.pedido.value     = state.pedido     || '';
     refs.cliente.value    = state.cliente    || '';
+    refs.idiomaCliente.value = state.idiomaCliente || currentLang;
+    refs.idiomaTaller.value = state.idiomaTaller || 'es';
     refs.modelo.value     = state.modelo     || 'SemiBOX';
     refs.maquina.value    = state.maquina    || 'NO';
     refs.linea.value      = state.linea      || '';
@@ -2307,7 +2326,7 @@ const App = (() => {
 
   const saveState = () => {
     localStorage.setItem('modulbox_onyx_state', JSON.stringify(getState()));
-    localStorage.setItem('modulbox_onyx_lang', currentLang);
+    localStorage.setItem('modulbox_onyx_lang', pintando ? uiLang : currentLang);
   };
 
   const loadState = () => {
@@ -2378,6 +2397,10 @@ const App = (() => {
     const labels = i18n[lang];
 
     document.getElementById('txtTitleMain').textContent = labels.titleMain;
+    document.getElementById('lblIdiomaCliente').textContent = t3('🌐 Idioma plano Cliente', '🌐 Customer drawing language',
+      '🌐 Langue du plan Client', '🌐 Sprache Kundenplan', '🌐 Lingua disegno Cliente', '🌐 Idioma do desenho Cliente');
+    document.getElementById('lblIdiomaTaller').textContent = t3('🔧 Idioma plano Taller', '🔧 Workshop drawing language',
+      '🔧 Langue du plan Atelier', '🔧 Sprache Werkstattplan', '🔧 Lingua disegno Officina', '🔧 Idioma do desenho Oficina');
     document.getElementById('txtSubtitleMain').textContent = labels.subtitleMain;
     document.getElementById('offlineBanner').textContent = labels.offlineMsg;
     document.getElementById('installMsg').textContent = labels.installMsg;
@@ -2448,6 +2471,13 @@ const App = (() => {
     document.getElementById('optInferiorSi').textContent = labels.optSi;
 
     refs.btnUploadPresupuesto.textContent = labels.btnUploadPresupuesto;
+    document.getElementById('txtArrastrar').textContent = t3(
+      'o arrastra el PDF o la foto a cualquier parte de esta ventana',
+      'or drag the PDF or photo anywhere onto this window',
+      'ou faites glisser le PDF ou la photo n’importe où dans cette fenêtre',
+      'oder PDF bzw. Foto an eine beliebige Stelle dieses Fensters ziehen',
+      'oppure trascina il PDF o la foto in un punto qualsiasi di questa finestra',
+      'ou arraste o PDF ou a foto para qualquer parte desta janela');
     document.getElementById('ocrDebugSummary').textContent = labels.ocrDebugVer;
     refs.btnSugerir.textContent = labels.btnSugerir;
     refs.btnCalcularBrazos.textContent = labels.btnCalcularBrazos;
@@ -2717,6 +2747,25 @@ const App = (() => {
     // En inglés, si "Your ref." va vacío: la línea de debajo de "Client num. 200697".
     if (!cli) cli = limpiaCli(grab(/CLIENT\s*NUM[.\s]*\d+\s*\n\s*([^\n]+)/));
     if (cli) out.cliente = cli;
+
+    // País del cliente → idioma del plano Cliente: el país de la dirección, que va en español
+    // (FRANCIA, IRLANDA…) y, si no sale, el prefijo del NIF (FR…, IE…). «SPAIN» es la dirección de Llaza.
+    // Países sin idioma propio en la app: inglés.
+    const IDIOMA_PAIS = {
+      ESPANA: 'es', ANDORRA: 'es', MEXICO: 'es', ARGENTINA: 'es', CHILE: 'es', COLOMBIA: 'es', URUGUAY: 'es',
+      FRANCIA: 'fr', BELGICA: 'fr', LUXEMBURGO: 'fr', MONACO: 'fr', MARRUECOS: 'fr', ARGELIA: 'fr', TUNEZ: 'fr',
+      ALEMANIA: 'de', AUSTRIA: 'de', SUIZA: 'de', ITALIA: 'it', 'SAN MARINO': 'it', PORTUGAL: 'pt', BRASIL: 'pt',
+      IRLANDA: 'en', 'REINO UNIDO': 'en', INGLATERRA: 'en', ESCOCIA: 'en', CANADA: 'en', 'ESTADOS UNIDOS': 'en',
+      AUSTRALIA: 'en', 'NUEVA ZELANDA': 'en', HUNGRIA: 'en', 'PAISES BAJOS': 'en', HOLANDA: 'en', DINAMARCA: 'en',
+      SUECIA: 'en', NORUEGA: 'en', FINLANDIA: 'en', ISLANDIA: 'en', POLONIA: 'en', GRECIA: 'en', CHIPRE: 'en',
+      MALTA: 'en', 'REPUBLICA CHECA': 'en', CHEQUIA: 'en', ESLOVAQUIA: 'en', ESLOVENIA: 'en', CROACIA: 'en',
+      RUMANIA: 'en', BULGARIA: 'en', ESTONIA: 'en', LETONIA: 'en', LITUANIA: 'en', TURQUIA: 'en', ISRAEL: 'en',
+    };
+    const IDIOMA_NIF = { ES: 'es', AD: 'es', FR: 'fr', BE: 'fr', LU: 'fr', MC: 'fr', DE: 'de', AT: 'de', CH: 'de', IT: 'it', SM: 'it', PT: 'pt' };
+    const pais = (U.match(new RegExp(`\\b(${Object.keys(IDIOMA_PAIS).join('|')})\\b`)) || [])[1];
+    const nif = grab(/\bNIF[:.\s]*([A-Z]{2})[-0-9A-Z]/);
+    const idioma = (pais && IDIOMA_PAIS[pais]) || (nif && (IDIOMA_NIF[nif] || 'en'));
+    if (idioma) out.idiomaCliente = idioma;
     return out;
   };
 
@@ -2994,10 +3043,12 @@ const App = (() => {
   // Muestra en pantalla las mismas cotas/filas que la copia de Taller (sin necesidad
   // de imprimir): activa/desactiva la clase 'view-taller' en <body> y resalta el
   // botón "Cliente" o "Taller" correspondiente.
-  const setVistaTaller = (activo) => {
+  const setVistaTaller = (activo, repintar = true) => {
+    const antes = document.body.classList.contains('view-taller');
     document.body.classList.toggle('view-taller', activo);
     refs.btnVerTaller.classList.toggle('active', activo);
     refs.btnVerCliente.classList.toggle('active', !activo);
+    if (repintar && antes !== activo) render(); // cada vista, en el idioma de su copia
   };
 
   const abrirPlanoModal = () => {
@@ -3063,6 +3114,8 @@ const App = (() => {
       return;
     }
     const target = refs.planoOut;
+    idiomaForzado = refs.idiomaCliente.value;
+    render();
     html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', ignoreElements: el => el.classList && (el.classList.contains('col-taller') || el.classList.contains('medida-control') || el.classList.contains('marca-colision')) }).then(canvas => {
       const link = document.createElement('a');
       link.download = `Modulbox_${sanitizeFilename(refs.pedido.value || 'Plan')}.png`;
@@ -3072,7 +3125,7 @@ const App = (() => {
     }).catch(err => {
       console.error(err);
       alert(i18n[currentLang].errExport);
-    });
+    }).finally(() => { idiomaForzado = null; render(); });
   };
 
   const exportPDF = () => {
@@ -3081,6 +3134,8 @@ const App = (() => {
       return;
     }
     const target = refs.planoOut;
+    idiomaForzado = refs.idiomaCliente.value;
+    render();
     html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', ignoreElements: el => el.classList && (el.classList.contains('col-taller') || el.classList.contains('medida-control') || el.classList.contains('marca-colision')) }).then(canvas => {
       const { jsPDF } = window.jspdf;
       const imgData = canvas.toDataURL('image/png');
@@ -3095,7 +3150,7 @@ const App = (() => {
     }).catch(err => {
       console.error(err);
       alert(i18n[currentLang].errExport);
-    });
+    }).finally(() => { idiomaForzado = null; render(); });
   };
 
   const updateBCAvailability = () => {
@@ -3179,7 +3234,7 @@ const App = (() => {
     const capaSoltar = document.createElement('div');
     capaSoltar.style.cssText = 'position:fixed;inset:12px;z-index:9999;display:none;align-items:center;justify-content:center;text-align:center;padding:20px;border:4px dashed #c0102e;border-radius:16px;background:rgba(255,255,255,.88);font:700 26px system-ui,sans-serif;color:#c0102e;pointer-events:none';
     document.body.appendChild(capaSoltar);
-    const mostrarCapa = v => { capaSoltar.textContent = refs.btnUploadPresupuesto.textContent; capaSoltar.style.display = v ? 'flex' : 'none'; };
+    const mostrarCapa = v => { capaSoltar.textContent = t3('📤 Suelta aquí el presupuesto', '📤 Drop the quote here', '📤 Déposez le devis ici', '📤 Angebot hier ablegen', '📤 Rilascia qui il preventivo', '📤 Solte aqui o orçamento'); capaSoltar.style.display = v ? 'flex' : 'none'; };
     window.addEventListener('dragenter', e => { if (!hayArchivo(e)) return; e.preventDefault(); arrastres++; mostrarCapa(true); });
     window.addEventListener('dragover', e => { if (hayArchivo(e)) e.preventDefault(); });
     window.addEventListener('dragleave', e => { if (hayArchivo(e) && --arrastres <= 0) { arrastres = 0; mostrarCapa(false); } });
@@ -3197,6 +3252,13 @@ const App = (() => {
     refs.btnCalcularBrazos.addEventListener('click', () => calcularPosicionBrazos());
     refs.holgura.addEventListener('input', () => { if (recolocarInteriores()) scheduleRender(); });
     refs.btnPrint.addEventListener('click', () => window.print());
+    // Cada copia impresa en su idioma: «Imprimir Taller» la de Taller; el resto, la de Cliente.
+    window.addEventListener('beforeprint', () => {
+      idiomaForzado = document.body.classList.contains('print-taller') ? refs.idiomaTaller.value : refs.idiomaCliente.value;
+      render();
+    });
+    window.addEventListener('afterprint', () => { idiomaForzado = null; render(); });
+    [refs.idiomaCliente, refs.idiomaTaller].forEach(el => el.addEventListener('change', () => { render(); saveState(); }));
     refs.btnPrintTaller.addEventListener('click', printTaller);
     refs.btnPDF.addEventListener('click', exportPDF);
     refs.btnExport.addEventListener('click', exportPNG);
@@ -3276,7 +3338,26 @@ const App = (() => {
     return brazos;
   };
 
+  // Idioma del plano: el de la copia Cliente (país del presupuesto) o el de la copia Taller
+  // (español por defecto), según la vista; al imprimir o exportar, el de esa copia. El
+  // formulario sigue en el idioma de la app (uiLang).
+  let idiomaForzado = null;
+  let uiLang = currentLang;
+  let pintando = false;
+  const idiomaPlano = () => idiomaForzado
+    || (document.body.classList.contains('view-taller') ? refs.idiomaTaller.value : refs.idiomaCliente.value)
+    || uiLang;
+  const enUI = (fn) => { const c = currentLang; currentLang = uiLang; try { return fn(); } finally { currentLang = c; } };
   const render = () => {
+    if (pintando) return pintar();
+    if (!(Number(refs.grosorTapa.value) || 0)) setVistaTaller(false, false);
+    uiLang = currentLang;
+    currentLang = idiomaPlano();
+    pintando = true;
+    try { pintar(); } finally { pintando = false; currentLang = uiLang; }
+  };
+
+  const pintar = () => {
     const L       = Number(refs.linea.value) || 0;
     const S       = Number(refs.salida.value) || 0;
     const holgura = Number(refs.holgura.value) || 0;
