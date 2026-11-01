@@ -359,8 +359,8 @@
           <select id="modelo">
             <option value="OPEN">OPEN</option>
             <option value="SemiOPEN">Semi OPEN</option>
-            <option value="SemiBOX" selected>Semi BOX</option>
-            <option value="FullBOX">Full BOX</option>
+            <option value="SemiBOX">Semi BOX</option>
+            <option value="FullBOX" selected>Full BOX</option>
           </select>
         </div>
         <div>
@@ -2266,7 +2266,7 @@ const App = (() => {
     refs.cliente.value    = state.cliente    || '';
     refs.idiomaCliente.value = state.idiomaCliente || currentLang;
     refs.idiomaTaller.value = state.idiomaTaller || 'es';
-    refs.modelo.value     = state.modelo     || 'SemiBOX';
+    refs.modelo.value     = state.modelo     || 'FullBOX';
     refs.maquina.value    = state.maquina    || 'NO';
     refs.linea.value      = state.linea      || '';
     refs.salida.value     = state.salida     || '2000';
@@ -2356,6 +2356,8 @@ const App = (() => {
   };
 
   // El primer brazo siempre es izquierdo y el último derecho; solo los interiores eligen mano.
+  // Con 3 brazos, el central va de entrada en la mano contraria al lado del motor.
+  const manoContrariaMotor = () => refs.ladoMotor.value === 'izq' ? 'der' : 'izq';
   const fijarLadosExtremos = () => {
     const n = +refs.numBrazos.value || 0;
     if (n < 2) return;
@@ -2363,6 +2365,8 @@ const App = (() => {
     const ultimo = document.getElementById('lado' + n);
     if (primero) primero.value = 'izq';
     if (ultimo) ultimo.value = 'der';
+    const central = n === 3 && document.getElementById('lado2');
+    if (central && !central.value) central.value = manoContrariaMotor();
   };
 
   const buildBrazosUI = (triggerRender = true) => {
@@ -2863,8 +2867,8 @@ const App = (() => {
     return lista;
   };
 
-  // Tras subir un presupuesto, brazos y soportes de pared se calculan solos. Con 3 brazos la mano
-  // del central no viene en el pedido: se calcula al elegirla (si no se han escrito cotas a mano).
+  // Tras subir un presupuesto, brazos y soportes de pared se calculan solos. Con 4 brazos la mano
+  // de los interiores no viene en el pedido: se calcula al elegirla (si no se han escrito cotas a mano).
   let calculoPendiente = false;
   const calcularTodoAuto = () => calcularPosicionBrazos(true) && sugerirSoportes(true);
   const faltaLado = () => Array.from({ length: +refs.numBrazos.value || 0 }, (_, i) => document.getElementById('lado' + (i + 1))?.value).some(l => !l);
@@ -2892,6 +2896,16 @@ const App = (() => {
     const lados = Array.from({ length: n }, (_, i) => document.getElementById('lado' + (i + 1))?.value);
     const hayCotas = lados.some((_, i) => document.getElementById('cota' + (i + 1))?.value) || refs.cotasPared.value.trim();
     if (!hayCotas) showNotification(textoCalculoAuto(calcularTodoAuto()));
+  };
+
+  // Con 3 brazos, al cambiar el lado del motor cambia la mano del central: las cotas que hubiera
+  // eran de la otra mano, así que brazos y soportes se recalculan.
+  const alCambiarLadoMotor = () => {
+    const central = +refs.numBrazos.value === 3 && document.getElementById('lado2');
+    if (!central || central.value === manoContrariaMotor()) return;
+    central.value = manoContrariaMotor();
+    const hayCotas = [1, 2, 3].some(i => document.getElementById('cota' + i)?.value) || refs.cotasPared.value.trim();
+    if (hayCotas) showNotification(textoCalculoAuto(calcularTodoAuto()));
   };
 
   const aplicarPresupuesto = (parcial) => {
@@ -3230,6 +3244,7 @@ const App = (() => {
     refs.numBrazos.addEventListener('change', () => { updateBCAvailability(); buildBrazosUI(true); });
     updateBCAvailability();
     refs.modelo.addEventListener('change', updatePerfilesAvailability);
+    refs.ladoMotor.addEventListener('change', alCambiarLadoMotor);
     updatePerfilesAvailability();
 
     refs.btnLangES.addEventListener('click', () => switchLanguage('es'));
