@@ -375,6 +375,7 @@
         <div>
           <label id="lblLinea" for="linea">Línea L (mm)</label>
           <input id="linea" type="number" min="0" placeholder="Ej. 6000" />
+          <div id="lineaMaxInfo" style="font-size: 0.75rem; margin-top: 4px;"></div>
         </div>
         <div>
           <label id="lblSalida" for="salida">Salida S (mm)</label>
@@ -3419,6 +3420,15 @@ const App = (() => {
     const fueraMinManual = L > 0 && (lineaMinManual === null || (lineaMinManual && L < lineaMinManual));
     const lineaMaxima = getLineaMaxima(numBrazosVal, S);
     const excedeLineaMax = L > 0 && lineaMaxima != null && L > lineaMaxima;
+    // Línea máxima del manual, siempre a la vista bajo el campo (en el idioma de la app).
+    // En Sombrex depende de la salida, no del número de brazos.
+    const lineaMaxSalida = getLineaMaxima(2, S);
+    const lineaMaxInfo = document.getElementById('lineaMaxInfo');
+    lineaMaxInfo.textContent = enUI(() => t3(`Línea máxima con salida ${S} mm: ${lineaMaxSalida} mm`, `Maximum width with ${S} mm projection: ${lineaMaxSalida} mm`,
+      `Largeur maximale avec avancée ${S} mm : ${lineaMaxSalida} mm`, `Maximale Strecke bei ${S} mm Ausfall: ${lineaMaxSalida} mm`,
+      `Lunghezza massima con sporgenza ${S} mm: ${lineaMaxSalida} mm`, `Largura máxima com avanço ${S} mm: ${lineaMaxSalida} mm`));
+    lineaMaxInfo.style.color = L > lineaMaxSalida ? '#991b1b' : 'var(--text-muted)';
+    lineaMaxInfo.style.fontWeight = L > lineaMaxSalida ? '700' : '400';
 
     const paredes = parseParedes(L);
     const brazos  = parseBrazos(L);
