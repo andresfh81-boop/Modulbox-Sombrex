@@ -717,11 +717,11 @@ const App = (() => {
   const tipoSoportes = (S_mm) => S_mm <= 2000 ? 'A' : 'B';
 
   // Línea máx. (manual Sombrex 1.2 «Líneas máximas»): 6,00 m con S hasta 3,00 m y 5,50 m con S 3,50 m
-  // (S 3,25 no sale en la tabla: se toma 5,50). Las tablas Excel daban 7 m con 3 brazos (Andrés, 26-oct-2026).
+  // (S 3,25 no sale en la tabla: se toma 6,00, Andrés 01-nov-2026, porque con 3 brazos la mínima es 5800 mm). Las tablas Excel daban 7 m con 3 brazos (Andrés, 26-oct-2026).
   // Para 4 brazos (desactivado) se reutiliza el límite de MODULBOX-400.
   const LINEA_MAX_POR_BRAZOS = { 2: 6000, 3: 6000, 4: 12000 };
   const getLineaMaxima = (nbrazos, S_mm) =>
-    nbrazos === 4 ? LINEA_MAX_POR_BRAZOS[4] : (LINEA_MAX_POR_BRAZOS[nbrazos] ? (S_mm > 3000 ? 5500 : 6000) : null);
+    nbrazos === 4 ? LINEA_MAX_POR_BRAZOS[4] : (LINEA_MAX_POR_BRAZOS[nbrazos] ? (S_mm > 3250 ? 5500 : 6000) : null);
 
   // Tabla "L3_2/3brazos" del Excel Sombrex (para 4 brazos, tabla de MODULBOX-400):
   // margen (mm) desde el extremo del tubo hasta el primer/último soporte de pared.
