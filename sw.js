@@ -1,4 +1,4 @@
-const CACHE_NAME = 'modulbox-sbx-v68';
+const CACHE_NAME = 'modulbox-sbx-v69';
 const APP_SHELL = [
 './',
 './index.html',
@@ -58,6 +58,8 @@ red.then((r) => { clearTimeout(timer); dar(r); })
 
 self.addEventListener('fetch', (event) => {
 if (event.request.method !== 'GET') return;
+// El interruptor remoto no se guarda aquí: siempre se pregunta a internet y, sin conexión, la app usa el último estado que leyó.
+if (event.request.url.endsWith('/bloqueo.json')) return;
 
 if (event.request.mode === 'navigate') {
 event.respondWith(paginaRed(event));
