@@ -1,4 +1,4 @@
-const CACHE_NAME = 'modulbox-sbx-v65';
+const CACHE_NAME = 'modulbox-sbx-v66';
 const APP_SHELL = [
 './',
 './index.html',

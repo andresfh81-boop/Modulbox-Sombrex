@@ -3022,11 +3022,12 @@ const App = (() => {
     }
     if (ladoArray.some(l => !l)) return aviso(labels.errCalcularFaltaLado);
     // El cálculo automático nunca da algo fuera del manual: por debajo de la línea mínima, por encima
-    // de la máxima o en una combinación que el manual no da, no calcula (a mano se puede y solo avisa).
+    // de la máxima o en una combinación que el manual no da, no calcula (a mano se puede y solo avisa, salvo por encima de la máxima: ahí el plano se bloquea).
     const lMinManual = getLineaMinimaManual(S, nbrazos, refs.maquina.value, bc);
     const lMaxManual = getLineaMaxima(nbrazos, S);
     if (lMinManual === null || (lMinManual && L < lMinManual) || (lMaxManual && L > lMaxManual)) {
       if (auto) return false;
+      if (lMaxManual && L > lMaxManual) { alert(textoFueraManual(L, S, nbrazos, undefined, lMaxManual)); return false; }
       alert(textoFueraManual(L, S, nbrazos, lMinManual, lMaxManual) + '\n' + t3(
         'El cálculo automático no puede saltarse el manual. Puedes escribir las cotas a mano.',
         'The automatic calculation cannot break the manual. You can type the positions by hand.',
@@ -3427,8 +3428,12 @@ const App = (() => {
     lineaMaxInfo.textContent = enUI(() => t3(`Línea máxima con salida ${S} mm: ${lineaMaxSalida} mm`, `Maximum width with ${S} mm projection: ${lineaMaxSalida} mm`,
       `Largeur maximale avec avancée ${S} mm : ${lineaMaxSalida} mm`, `Maximale Strecke bei ${S} mm Ausfall: ${lineaMaxSalida} mm`,
       `Lunghezza massima con sporgenza ${S} mm: ${lineaMaxSalida} mm`, `Largura máxima com avanço ${S} mm: ${lineaMaxSalida} mm`));
-    lineaMaxInfo.style.color = L > lineaMaxSalida ? '#991b1b' : 'var(--text-muted)';
-    lineaMaxInfo.style.fontWeight = L > lineaMaxSalida ? '700' : '400';
+    const lineaTope = lineaMaxSalida;
+    const lineaSuperada = L > lineaTope;
+    lineaMaxInfo.style.color = lineaSuperada ? '#991b1b' : 'var(--text-muted)';
+    lineaMaxInfo.style.fontWeight = lineaSuperada ? '700' : '400';
+    // Por encima de la línea máxima del manual no hay plano ni se puede imprimir ni exportar.
+    ['btnPrint', 'btnPrintTaller', 'btnImprimirArriba', 'btnPDF', 'btnExport', 'btnAmpliarPlano'].forEach(id => { document.getElementById(id).disabled = lineaSuperada; });
 
     const paredes = parseParedes(L);
     const brazos  = parseBrazos(L);
@@ -3619,6 +3624,17 @@ const App = (() => {
     }
 
     refs.alertOut.innerHTML = alertHtml;
+
+    if (lineaSuperada) {
+      refs.planoOut.innerHTML = `<div style="text-align:center;color:#991b1b;padding:50px;font-weight:700;">🚫 ${t3(
+        `Plano bloqueado: la línea (${L} mm) supera la máxima del manual (${lineaTope} mm).`,
+        `Plan blocked: the width (${L} mm) exceeds the manual maximum (${lineaTope} mm).`,
+        `Plan bloqué : la largeur (${L} mm) dépasse le maximum du manuel (${lineaTope} mm).`,
+        `Plan gesperrt: die Strecke (${L} mm) überschreitet das Maximum des Handbuchs (${lineaTope} mm).`,
+        `Disegno bloccato: la lunghezza (${L} mm) supera il massimo del manuale (${lineaTope} mm).`,
+        `Desenho bloqueado: a largura (${L} mm) excede a máxima do manual (${lineaTope} mm).`)}</div>`;
+      return;
+    }
 
     if (L <= 0 || errores.length > 0) {
       refs.planoOut.innerHTML = `<div style="text-align:center;color:#888;padding:50px;font-style:italic;">${labels.msgPlaceholder}</div>`;
