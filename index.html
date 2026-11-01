@@ -2356,8 +2356,7 @@ const App = (() => {
   };
 
   // El primer brazo siempre es izquierdo y el último derecho; solo los interiores eligen mano.
-  // Con 3 brazos, el central va de entrada en la mano contraria al lado del motor.
-  const manoContrariaMotor = () => refs.ladoMotor.value === 'izq' ? 'der' : 'izq';
+  // Con 3 brazos, el central va de entrada en la misma mano que el lado del motor.
   const fijarLadosExtremos = () => {
     const n = +refs.numBrazos.value || 0;
     if (n < 2) return;
@@ -2366,7 +2365,7 @@ const App = (() => {
     if (primero) primero.value = 'izq';
     if (ultimo) ultimo.value = 'der';
     const central = n === 3 && document.getElementById('lado2');
-    if (central && !central.value) central.value = manoContrariaMotor();
+    if (central && !central.value) central.value = refs.ladoMotor.value;
   };
 
   const buildBrazosUI = (triggerRender = true) => {
@@ -2902,8 +2901,8 @@ const App = (() => {
   // eran de la otra mano, así que brazos y soportes se recalculan.
   const alCambiarLadoMotor = () => {
     const central = +refs.numBrazos.value === 3 && document.getElementById('lado2');
-    if (!central || central.value === manoContrariaMotor()) return;
-    central.value = manoContrariaMotor();
+    if (!central || central.value === refs.ladoMotor.value) return;
+    central.value = refs.ladoMotor.value;
     const hayCotas = [1, 2, 3].some(i => document.getElementById('cota' + i)?.value) || refs.cotasPared.value.trim();
     if (hayCotas) showNotification(textoCalculoAuto(calcularTodoAuto()));
   };
