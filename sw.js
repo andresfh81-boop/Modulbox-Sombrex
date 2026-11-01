@@ -1,4 +1,4 @@
-const CACHE_NAME = 'modulbox-sbx-v60';
+const CACHE_NAME = 'modulbox-sbx-v61';
 const APP_SHELL = [
 './',
 './index.html',
@@ -9,7 +9,9 @@ const APP_SHELL = [
 './icon-32.png',
 './icon-180.png',
 './icon-192.png',
-'./icon-512.png'
+'./icon-512.png',
+'./icon-maskable-192.png',
+'./icon-maskable-512.png'
 ];
 // Con conexión, la página se pide siempre a internet; si tarda más de esto, se abre la copia guardada.
 const NET_TIMEOUT = 4000;
