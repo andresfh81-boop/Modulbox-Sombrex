@@ -406,6 +406,34 @@
         </div>
       </div>
       <div class="row">
+        <div id="grupoMotorNm">
+          <label id="lblMotorNm" for="motorNm">🔩 Motor toldo (Nm)</label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <input id="motorNm" type="number" min="0" step="1" placeholder="—" inputmode="numeric" />
+            <button id="btnMotorNmManual" type="button" class="secondary" style="margin-top:0; width:auto; flex:none; padding:8px 12px;" hidden>↺</button>
+          </div>
+          <div id="motorNmInfo" style="font-size: 0.75rem; margin-top: 4px;"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label id="lblAccionBarra" for="accionBarra">🎚️ Accionamiento barra de carga</label>
+          <select id="accionBarra">
+            <option id="optBarraBateria" value="bateria">Motor de batería</option>
+            <option id="optBarraCable" value="cable" selected>Motor de cable</option>
+            <option id="optBarraMaquina" value="maquina">Máquina</option>
+          </select>
+        </div>
+        <div id="grupoBarraNm">
+          <label id="lblBarraNm" for="barraNm">🔩 Motor barra de carga (Nm)</label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <input id="barraNm" type="number" min="0" step="1" placeholder="—" inputmode="numeric" />
+            <button id="btnBarraNmManual" type="button" class="secondary" style="margin-top:0; width:auto; flex:none; padding:8px 12px;" hidden>↺</button>
+          </div>
+          <div id="barraNmInfo" style="font-size: 0.75rem; margin-top: 4px;"></div>
+        </div>
+      </div>
+      <div class="row">
         <div>
           <label id="lblGrosorTapa" for="grosorTapa">🧵 Grosor de tapa (mm)</label>
           <input id="grosorTapa" type="number" min="0" value="19" placeholder="Ej. 19" />
@@ -720,6 +748,45 @@ const App = (() => {
   // (S 3,25 no sale en la tabla: se toma 6,00, Andrés 01-nov-2026, porque con 3 brazos la mínima es 5800 mm). Las tablas Excel daban 7 m con 3 brazos (Andrés, 26-oct-2026).
   // Para 4 brazos (desactivado) se reutiliza el límite de MODULBOX-400.
   const LINEA_MAX_POR_BRAZOS = { 2: 6000, 3: 6000, 4: 12000 };
+
+  // Manual Sombrex (feb. 2023), apdo. 3.1: par mínimo del motor del cofre (Nm) por nº de brazos.
+  // l = línea (mm), s = salida (mm), null = el manual no da esa medida. Brazos cruzados: misma tabla.
+  // S 3,25 con L 6,00: la fila de S 3,50 no llega a 6,00 y se toma su último valor (50 / 70 Nm, igual que S 3,00).
+  const NM_MOTOR = {
+    2: { l: [2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000],
+        s: [1500, 2000, 2500, 3000, 3500],
+        v: [[30, 30, 30, 30, 30, 35, 35, 35, 35],
+          [35, 35, 35, 35, 35, 35, 40, 40, 40],
+          [35, 40, 40, 40, 40, 40, 50, 50, 50],
+          [null, 50, 50, 50, 50, 50, 50, 50, 50],
+          [null, 50, 50, 50, 50, 50, 50, 50, null]] },
+    3: { l: [2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000],
+        s: [1500, 2000, 2500, 3000, 3500],
+        v: [[40, 40, 40, 40, 50, 50, 50, 50, 50],
+          [50, 50, 50, 50, 50, 50, 50, 50, 55],
+          [55, 55, 55, 55, 55, 55, 70, 70, 70],
+          [70, 70, 70, 70, 70, 70, 70, 70, 70],
+          [70, 70, 70, 70, 70, 70, 70, 70, null]] },
+  };
+  // Apdo. 3.2, motor de la barra de carga (Ø40, caída 1,4 m). El manual no da el motor de batería
+  // (AM35 Plus L): usa esta misma tabla hasta que Andrés confirme su par (02-nov-2026).
+  const NM_BARRA = { l: [2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000], s: [3500], v: [[3, 3, 3, 3, 3, 3, 6, 6, 6]] };
+  // Medidas intermedias: siempre a la fila y columna superiores, porque la tabla da el par mínimo.
+  const buscarNm = (tabla, S_mm, L_mm) => {
+    if (!tabla || !(S_mm > 0) || !(L_mm > 0)) return null;
+    const pos = (lista, v) => { const i = lista.findIndex(x => x >= v); return i < 0 ? lista.length - 1 : i; };
+    const iS = pos(tabla.s, S_mm);
+    const fila = tabla.v[iS];
+    const iL = pos(tabla.l, L_mm);
+    let col = iL;
+    if (fila[col] == null) {
+      col = -1;
+      for (let i = iL - 1; i >= 0 && col < 0; i--) if (fila[i] != null) col = i;
+      if (col < 0) col = fila.findIndex(v => v != null);
+    }
+    return { nm: fila[col], l: tabla.l[col], s: tabla.s[iS], exacto: col === iL };
+  };
+
   const getLineaMaxima = (nbrazos, S_mm) =>
     nbrazos === 4 ? LINEA_MAX_POR_BRAZOS[4] : (LINEA_MAX_POR_BRAZOS[nbrazos] ? (S_mm > 3250 ? 5500 : 6000) : null);
 
@@ -2136,6 +2203,9 @@ const App = (() => {
     const map = { es, en, fr, de, it, pt };
     return map[currentLang] ?? en;
   };
+  const textoAccionBarra = (a) => a === 'bateria' ? t3('Motor de batería', 'Battery motor', 'Moteur à batterie', 'Akkumotor', 'Motore a batteria', 'Motor a bateria')
+    : a === 'cable' ? t3('Motor de cable', 'Wired motor', 'Moteur filaire', 'Kabelmotor', 'Motore con cavo', 'Motor com cabo')
+    : t3('Máquina', 'Gearbox', 'Machine', 'Maschine', 'Riduttore', 'Redutor');
   // Aviso de línea fuera del manual Sombrex (pág. 3 mínimas, 1.2 máximas). lMin null = combinación sin dato.
   const textoFueraManual = (L, S, n, lMin, lMax) => {
     const caso = `S ${S} mm, ${n} ${t3('brazos', 'arms', 'bras', 'Arme', 'bracci', 'braços')}`;
@@ -2173,6 +2243,13 @@ const App = (() => {
     maquina:         document.getElementById('maquina'),
     linea:           document.getElementById('linea'),
     salida:          document.getElementById('salida'),
+    motorNm:         document.getElementById('motorNm'),
+    accionBarra:     document.getElementById('accionBarra'),
+    barraNm:         document.getElementById('barraNm'),
+    barraNmInfo:     document.getElementById('barraNmInfo'),
+    btnBarraNmManual: document.getElementById('btnBarraNmManual'),
+    motorNmInfo:     document.getElementById('motorNmInfo'),
+    btnMotorNmManual: document.getElementById('btnMotorNmManual'),
     ladoMotor:       document.getElementById('ladoMotor'),
     holgura:         document.getElementById('holgura'),
     grosorTapa:      document.getElementById('grosorTapa'),
@@ -2233,6 +2310,9 @@ const App = (() => {
       linea:      refs.linea.value,
       salida:     refs.salida.value,
       ladoMotor:  refs.ladoMotor.value,
+      motorNm:    refs.motorNm.dataset.editado === '1' ? refs.motorNm.value : '',
+      accionBarra: refs.accionBarra.value,
+      barraNm:    refs.barraNm.dataset.editado === '1' ? refs.barraNm.value : '',
       holgura:    refs.holgura.value,
       grosorTapa: refs.grosorTapa.value,
       cotasPared: refs.cotasPared.value,
@@ -2272,6 +2352,11 @@ const App = (() => {
     refs.linea.value      = state.linea      || '';
     refs.salida.value     = state.salida     || '2000';
     refs.ladoMotor.value  = state.ladoMotor  || 'izq';
+    refs.motorNm.value    = state.motorNm    || '';
+    refs.motorNm.dataset.editado = state.motorNm ? '1' : '';
+    refs.accionBarra.value = state.accionBarra || 'cable';
+    refs.barraNm.value    = state.barraNm    || '';
+    refs.barraNm.dataset.editado = state.barraNm ? '1' : '';
     refs.holgura.value    = state.holgura    || '0';
     refs.grosorTapa.value = state.grosorTapa || '19';
     refs.cotasPared.value = state.cotasPared || '';
@@ -2428,6 +2513,12 @@ const App = (() => {
     document.getElementById('lblSalida').textContent = labels.lblSalida;
     refs.linea.placeholder = labels.phLinea;
     document.getElementById('lblLadoMotor').textContent = labels.lblLadoMotor;
+    document.getElementById('lblMotorNm').textContent = t3('🔩 Motor toldo (Nm)', '🔩 Awning motor (Nm)', '🔩 Moteur store (Nm)', '🔩 Markisenmotor (Nm)', '🔩 Motore tenda (Nm)', '🔩 Motor do toldo (Nm)');
+    document.getElementById('lblAccionBarra').textContent = t3('🎚️ Accionamiento barra de carga', '🎚️ Load bar drive', '🎚️ Commande barre de charge', '🎚️ Antrieb Ausfallprofil', '🎚️ Azionamento barra di carico', '🎚️ Acionamento barra de carga');
+    document.getElementById('lblBarraNm').textContent = t3('🔩 Motor barra de carga (Nm)', '🔩 Load bar motor (Nm)', '🔩 Moteur barre de charge (Nm)', '🔩 Motor Ausfallprofil (Nm)', '🔩 Motore barra di carico (Nm)', '🔩 Motor barra de carga (Nm)');
+    document.getElementById('optBarraBateria').textContent = textoAccionBarra('bateria');
+    document.getElementById('optBarraCable').textContent = textoAccionBarra('cable');
+    document.getElementById('optBarraMaquina').textContent = textoAccionBarra('maquina');
     document.getElementById('lblHolgura').textContent = labels.lblHolgura;
     document.getElementById('lblGrosorTapa').textContent = labels.lblGrosorTapa;
     refs.grosorTapa.placeholder = labels.phGrosorTapa;
@@ -2914,7 +3005,7 @@ const App = (() => {
     const datos = Object.fromEntries(Object.entries(parcial).filter(([k]) => k[0] !== '_'));
     // Si trae el toldo, las cotas que hubiera eran de otro toldo: se vacían y se recalculan.
     const traeToldo = ['linea', 'salida', 'numBrazos'].some(k => parcial[k]);
-    if (traeToldo) Object.assign(datos, { brazosData: [], cotasPared: '', cotasTejadillo: '', cotasInferior: '' });
+    if (traeToldo) Object.assign(datos, { brazosData: [], cotasPared: '', cotasTejadillo: '', cotasInferior: '', motorNm: '', accionBarra: 'cable', barraNm: '' });
     applyState(Object.assign(getState(), datos));
     render();
     let calc = '';
@@ -3246,6 +3337,11 @@ const App = (() => {
     updateBCAvailability();
     refs.modelo.addEventListener('change', updatePerfilesAvailability);
     refs.ladoMotor.addEventListener('change', alCambiarLadoMotor);
+    refs.accionBarra.addEventListener('change', scheduleRender);
+    [[refs.motorNm, refs.btnMotorNmManual], [refs.barraNm, refs.btnBarraNmManual]].forEach(([input, btn]) => {
+      input.addEventListener('input', () => { input.dataset.editado = input.value.trim() === '' ? '' : '1'; scheduleRender(); });
+      btn.addEventListener('click', () => { input.dataset.editado = ''; render(); saveState(); });
+    });
     updatePerfilesAvailability();
 
     refs.btnLangES.addEventListener('click', () => switchLanguage('es'));
@@ -3385,6 +3481,25 @@ const App = (() => {
   const idiomaPlano = () => idiomaForzado
     || (document.body.classList.contains('view-taller') ? refs.idiomaTaller.value : refs.idiomaCliente.value)
     || uiLang;
+  // Campo de Nm: sale solo con el valor del manual; lo escrito a mano se conserva hasta pulsar ↺.
+  const pintarNm = (input, info, btn, dato, caso) => {
+    const editado = input.dataset.editado === '1';
+    if (!editado) input.value = dato ? dato.nm : '';
+    btn.hidden = !editado;
+    btn.title = enUI(() => t3('Volver al valor del manual', 'Back to the manual value', 'Revenir à la valeur du manuel', 'Zurück zum Handbuchwert', 'Torna al valore del manuale', 'Voltar ao valor do manual'));
+    const valor = Number(input.value) || 0;
+    const bajo = editado && dato && valor < dato.nm;
+    input.style.borderColor = editado ? '#d97706' : '';
+    info.style.color = (bajo || (dato && !dato.exacto)) ? '#991b1b' : 'var(--text-muted)';
+    info.style.fontWeight = bajo ? '700' : '400';
+    info.textContent = !dato ? '' : enUI(() =>
+      (dato.exacto ? '' : t3('⚠ El manual no da esta medida: valor más cercano · ', '⚠ The manual has no value for this size: nearest value · ', '⚠ Le manuel ne donne pas cette mesure : valeur la plus proche · ', '⚠ Für dieses Maß kein Handbuchwert: nächster Wert · ', '⚠ Il manuale non indica questa misura: valore più vicino · ', '⚠ O manual não dá esta medida: valor mais próximo · '))
+      + (bajo ? t3('⚠ Por debajo del mínimo del manual · ', '⚠ Below the manual minimum · ', '⚠ Inférieur au minimum du manuel · ', '⚠ Unter dem Mindestwert des Handbuchs · ', '⚠ Inferiore al minimo del manuale · ', '⚠ Abaixo do mínimo do manual · ')
+        : editado ? t3('Editado a mano · ', 'Edited by hand · ', 'Modifié à la main · ', 'Von Hand geändert · ', 'Modificato a mano · ', 'Editado à mão · ') : '')
+      + t3('Manual: ', 'Manual: ', 'Manuel : ', 'Handbuch: ', 'Manuale: ', 'Manual: ') + `${dato.nm} Nm (${caso(dato)})`);
+    return valor;
+  };
+  const casoNmToldo = (n) => (d) => `L ${d.l} mm · S ${d.s} mm · ${n} ${t3('brazos', 'arms', 'bras', 'Arme', 'bracci', 'braços')}`;
   const enUI = (fn) => { const c = currentLang; currentLang = uiLang; try { return fn(); } finally { currentLang = c; } };
   const render = () => {
     if (pintando) return pintar();
@@ -3409,6 +3524,15 @@ const App = (() => {
     const motor   = refs.ladoMotor.value;
     const numBrazosVal = +refs.numBrazos.value || 0;
     const labels  = i18n[currentLang];
+
+    // Con máquina no hay motor: ni campo ni Nm en el plano. El cofre y la barra de carga van por separado
+    // (el Full BOX obliga a motor en el cofre, pero su Sombrex puede ir con máquina: manual, apdo. 5.2).
+    const conMotor = refs.maquina.value !== 'SI';
+    document.getElementById('grupoMotorNm').style.display = conMotor ? '' : 'none';
+    const motorNmValor = conMotor ? pintarNm(refs.motorNm, refs.motorNmInfo, refs.btnMotorNmManual, buscarNm(NM_MOTOR[numBrazosVal], S, L), casoNmToldo(numBrazosVal)) : 0;
+    const barraConMotor = refs.accionBarra.value !== 'maquina';
+    document.getElementById('grupoBarraNm').style.display = barraConMotor ? '' : 'none';
+    const barraNmValor = barraConMotor ? pintarNm(refs.barraNm, refs.barraNmInfo, refs.btnBarraNmManual, buscarNm(NM_BARRA, 3500, L), (d) => `L ${d.l} mm`) : 0;
 
     const brazoRep = getBrazoPlegadoReal(S);
     // Tipo de configuración según manual MODULBOX-400 (1.3 Línea mínimas): A si S≤2,5m, B si S≥2,75m.
@@ -4091,7 +4215,8 @@ const App = (() => {
         </div>
         <div class="plan-meta">
           📋 ${labels.metaPedido}: <b>${pedido}</b> &nbsp;&middot;&nbsp; 👤 ${labels.metaCliente}: <b>${cliente}</b><br/>
-          📏 ${labels.metaLinea}: <b>${L} mm</b> &nbsp;&middot;&nbsp; 📐 ${labels.metaSalida}: <b>${S} mm</b> &nbsp;&middot;&nbsp; ⚡ ${labels.metaMotor}: <b>${motor === 'izq' ? labels.motorIzq : labels.motorDer}</b>
+          📏 ${labels.metaLinea}: <b>${L} mm</b> &nbsp;&middot;&nbsp; 📐 ${labels.metaSalida}: <b>${S} mm</b> &nbsp;&middot;&nbsp; ⚡ ${labels.metaMotor}: <b>${motor === 'izq' ? labels.motorIzq : labels.motorDer}${motorNmValor ? ` · ${motorNmValor} Nm` : ''}</b><br/>
+          🎚️ ${t3('Barra de carga', 'Load bar', 'Barre de charge', 'Ausfallprofil', 'Barra di carico', 'Barra de carga')}: <b>${textoAccionBarra(refs.accionBarra.value)}${barraNmValor ? ` · ${barraNmValor} Nm` : ''}</b>
           ${grosorTapa && L > 0 ? `<span class="taller-only"><br/>🔩 ${t3('Barra cuadrada (sin tapas)', 'Square bar (without end caps)', 'Barre carrée (sans embouts)', 'Vierkantstange (ohne Endkappen)', 'Barra quadra (senza tappi)', 'Barra quadrada (sem tampas)')}: <b>${L - 2 * grosorTapa} mm</b> (${L} − 2 × ${grosorTapa})<br/>📐 ${t3('Las medidas de taller son sobre la barra cuadrada, sin la tapa', 'Workshop dimensions are on the square bar, without the end cap', 'Les cotes atelier sont sur la barre carrée, sans l\'embout', 'Werkstattmaße gelten für den Vierkantstab ohne Endkappe', 'Le quote officina sono sulla barra quadra, senza il tappo', 'As cotas de oficina são sobre a barra quadrada, sem a tampa')}</span><span class="col-cliente"><br/>📐 ${t3('La línea se mide contando las tapas: las cotas van sobre la línea, desde el extremo izquierdo (0)', 'The width includes the end caps: positions are measured on the width, from the left end (0)', 'La largeur se mesure embouts compris : les cotes sont sur la largeur, depuis l\'extrémité gauche (0)', 'Die Strecke wird mit Endkappen gemessen: Positionen auf der Strecke, ab dem linken Ende (0)', 'La lunghezza si misura con i tappi: le quote sono sulla lunghezza, dall\'estremità sinistra (0)', 'A largura mede-se com as tampas: as cotas são sobre a largura, a partir da extremidade esquerda (0)')}</span>` : ''}
         </div>
       </div>
