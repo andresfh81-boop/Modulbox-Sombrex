@@ -3344,12 +3344,21 @@ const App = (() => {
     });
     updatePerfilesAvailability();
 
-    refs.btnLangES.addEventListener('click', () => switchLanguage('es'));
-    refs.btnLangEN.addEventListener('click', () => switchLanguage('en'));
-    refs.btnLangFR.addEventListener('click', () => switchLanguage('fr'));
-    refs.btnLangDE.addEventListener('click', () => switchLanguage('de'));
-    refs.btnLangIT.addEventListener('click', () => switchLanguage('it'));
-    refs.btnLangPT.addEventListener('click', () => switchLanguage('pt'));
+    // Al pulsar un idioma de la app cambian también los dos planos (Cliente y Taller) a ese idioma, para
+    // que salga todo igual (criterio de Andrés, 07-nov-2026); luego se pueden cambiar uno a uno.
+    const cambiarIdiomaTodo = (lang) => {
+      refs.idiomaCliente.value = lang;
+      refs.idiomaTaller.value = lang;
+      switchLanguage(lang);
+      render();
+      saveState();
+    };
+    refs.btnLangES.addEventListener('click', () => cambiarIdiomaTodo('es'));
+    refs.btnLangEN.addEventListener('click', () => cambiarIdiomaTodo('en'));
+    refs.btnLangFR.addEventListener('click', () => cambiarIdiomaTodo('fr'));
+    refs.btnLangDE.addEventListener('click', () => cambiarIdiomaTodo('de'));
+    refs.btnLangIT.addEventListener('click', () => cambiarIdiomaTodo('it'));
+    refs.btnLangPT.addEventListener('click', () => cambiarIdiomaTodo('pt'));
 
     refs.btnUploadPresupuesto.addEventListener('click', () => refs.filePresupuesto.click());
     refs.filePresupuesto.addEventListener('change', (e) => {
@@ -4371,7 +4380,7 @@ const App = (() => {
     if (medidasCodo.length) {
       svgHtml += `
         <div class="medida-control">
-          <h4>🔒 Medidas de control (solo pantalla, no sale en cliente/taller/PDF/PNG)</h4>
+          <h4>🔒 ${enUI(() => t3('Medidas de control (solo pantalla, no sale en cliente/taller/PDF/PNG)', 'Check measurements (screen only, not in client/workshop/PDF/PNG)', 'Mesures de contrôle (écran seulement, pas dans client/atelier/PDF/PNG)', 'Kontrollmaße (nur Bildschirm, nicht in Kunde/Werkstatt/PDF/PNG)', 'Misure di controllo (solo schermo, non in cliente/officina/PDF/PNG)', 'Medidas de controlo (só no ecrã, não sai em cliente/oficina/PDF/PNG)'))}</h4>
           ${medidasCodo.map(m => `<div>${m.texto}: <b>${m.valor} mm</b></div>`).join('')}
         </div>
       `;
