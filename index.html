@@ -455,6 +455,7 @@
              retoma. Para reactivarla, quitar "hidden disabled" y volver a poner (2–4) en lblNumBrazos. -->
         <option id="optNumBrazos4" value="4" hidden disabled>4 brazos</option>
       </select>
+      <div id="lineasInfo" style="font-size: 0.8rem; margin: 4px 0 8px; color: var(--text-muted);"></div>
 
       <label for="brazosCruzados"><span id="lblBC">✖️ Brazos Cruzados</span> <span id="lblBCnota" style="font-weight:400; color: var(--text-muted);">(solo 2 brazos)</span></label>
       <select id="brazosCruzados">
@@ -3565,6 +3566,51 @@ const App = (() => {
     const lineaSuperada = L > lineaTope;
     lineaMaxInfo.style.color = lineaSuperada ? '#991b1b' : 'var(--text-muted)';
     lineaMaxInfo.style.fontWeight = lineaSuperada ? '700' : '400';
+
+    // Líneas del manual bajo «Número de brazos»: resumen para la configuración elegida y tabla
+    // completa por salida (Manual MODULBOX-400 SOMBREX (feb. 2023), pág. 3 «1.1 Líneas mínimas» y 1.2 «Líneas máximas».).
+    {
+      const lineasInfo = document.getElementById('lineasInfo');
+      const maxLinea = (nb, s) => getLineaMaxima(nb, s);
+      const COLS_LINEAS = [['m2', 2, 'NO', 'NO'], ['q2', 2, 'SI', 'NO'], ['m3', 3, 'NO', 'NO'], ['bcm', 2, 'NO', 'SI'], ['bcq', 2, 'SI', 'SI']];
+      const maqSel = refs.maquina.value, bcSel = numBrazosVal === 2 ? refs.brazosCruzados.value : 'NO';
+      const colSel = COLS_LINEAS.find(c => c[1] === numBrazosVal && c[2] === maqSel && c[3] === bcSel);
+      lineasInfo.innerHTML = enUI(() => {
+        let html = '';
+        if (S > 0 && [2, 3, 4].includes(numBrazosVal)) {
+          const min = getLineaMinimaManual(S, numBrazosVal, maqSel, bcSel);
+          const extra = [maqSel === 'SI' ? t3('máquina', 'gear', 'manœuvre', 'Getriebe', 'argano', 'máquina') : '', bcSel === 'SI' ? t3('brazos cruzados', 'crossed arms', 'bras croisés', 'gekreuzte Arme', 'bracci incrociati', 'braços cruzados') : ''].filter(Boolean).join(', ');
+          html = `📏 ${t3(`Línea con S = ${S} y ${numBrazosVal} brazos`, `Width with S = ${S} and ${numBrazosVal} arms`, `Largeur avec S = ${S} et ${numBrazosVal} bras`, `Strecke mit S = ${S} und ${numBrazosVal} Armen`, `Lunghezza con S = ${S} e ${numBrazosVal} bracci`, `Largura com S = ${S} e ${numBrazosVal} braços`)}${extra ? ` (${extra})` : ''}: `
+            + (min === null ? `<b>${t3('el manual no da esta combinación', 'the manual does not list this combination', 'le manuel ne donne pas cette combinaison', 'das Handbuch nennt diese Kombination nicht', 'il manuale non riporta questa combinazione', 'o manual não indica esta combinação')}</b>`
+               : min ? `${t3('mínima', 'minimum', 'minimale', 'Minimum', 'minima', 'mínima')} <b>${min}</b>` : '')
+            + ` · ${t3('máxima', 'maximum', 'maximale', 'Maximum', 'massima', 'máxima')} <b>${maxLinea(numBrazosVal, S)}</b> mm`;
+        }
+        const nombreCol = (c) => c[3] === 'SI'
+          ? (c[2] === 'SI' ? t3('Cruzados<br>máquina', 'Crossed<br>gear', 'Croisés<br>manœuvre', 'Gekreuzt<br>Getriebe', 'Incrociati<br>argano', 'Cruzados<br>máquina') : t3('Cruzados<br>motor', 'Crossed<br>motor', 'Croisés<br>moteur', 'Gekreuzt<br>Motor', 'Incrociati<br>motore', 'Cruzados<br>motor'))
+          : `${c[1]} ${t3('brazos', 'arms', 'bras', 'Arme', 'bracci', 'braços')}${c[2] === 'SI' ? '<br>' + t3('máquina', 'gear', 'manœuvre', 'Getriebe', 'argano', 'máquina') : (c[1] === 2 ? '<br>' + t3('motor', 'motor', 'moteur', 'Motor', 'motore', 'motor') : '')}`;
+        const salidas = Object.keys(LINEA_MIN_MANUAL).map(Number);
+        const celda = (s, c) => {
+          const v = LINEA_MIN_MANUAL[s][c[0]];
+          const marcada = s === S && colSel && c[0] === colSel[0];
+          return `<td style="text-align:right;${marcada ? ' background:#fef3c7; font-weight:800;' : ''}">${v == null ? '—' : v}</td>`;
+        };
+        const maxima = (c) => {
+          const vals = salidas.map(s => maxLinea(c[1], s));
+          const distintos = [...new Set(vals)];
+          if (distintos.length === 1) return distintos[0];
+          return distintos.map((v, i) => i === 0 ? v : `${v} (S ≥ ${salidas[vals.indexOf(v)]})`).join('<br>');
+        };
+        const abierta = lineasInfo.querySelector('details')?.open ? ' open' : '';
+        html += `<details style="margin-top:4px;"${abierta}><summary style="cursor:pointer;">${t3('Tabla de líneas del manual', 'Manual width table', 'Tableau des largeurs du manuel', 'Streckentabelle aus dem Handbuch', 'Tabella lunghezze del manuale', 'Tabela de larguras do manual')}</summary>
+          <div style="overflow-x:auto;"><table style="font-size:0.78rem; margin-top:4px; border-collapse:collapse;" border="1" cellpadding="3">
+          <tr><th>${t3('Salida', 'Projection', 'Avancée', 'Ausfall', 'Sporgenza', 'Avanço')}</th>${COLS_LINEAS.map(c => `<th>${nombreCol(c)}<br>${t3('mín.', 'min.', 'min.', 'min.', 'min.', 'mín.')}</th>`).join('')}</tr>
+          ${salidas.map(s => `<tr><td>${s}</td>${COLS_LINEAS.map(c => celda(s, c)).join('')}</tr>`).join('')}
+          <tr><th>${t3('Máxima', 'Maximum', 'Maximale', 'Maximum', 'Massima', 'Máxima')}</th>${(() => { const ms = COLS_LINEAS.map(maxima).map(String); return new Set(ms).size === 1 ? `<td colspan="${ms.length}" style="text-align:center;">${ms[0].replace('<br>', ' · ')}</td>` : ms.map(m => `<td style="text-align:right;">${m}</td>`).join(''); })()}</tr>
+          </table></div>
+          <div style="margin-top:2px;">${t3('— = el manual no da esa combinación (no se fabrica).', '— = not listed in the manual (not manufactured).', '— = non indiqué dans le manuel (non fabriqué).', '— = nicht im Handbuch (wird nicht gefertigt).', '— = non riportato nel manuale (non si fabbrica).', '— = o manual não indica (não se fabrica).')}</div></details>`;
+        return html;
+      });
+    }
     // Por encima de la línea máxima del manual no hay plano ni se puede imprimir ni exportar.
     ['btnPrint', 'btnPrintTaller', 'btnImprimirArriba', 'btnPDF', 'btnExport', 'btnAmpliarPlano'].forEach(id => { document.getElementById(id).disabled = lineaSuperada; });
 
