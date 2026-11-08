@@ -2421,18 +2421,13 @@ const App = (() => {
 
   const saveState = () => {
     localStorage.setItem('modulbox_onyx_state', JSON.stringify(getState()));
-    localStorage.setItem('modulbox_onyx_lang', pintando ? uiLang : currentLang);
   };
 
   const loadState = () => {
-    // La app se abre siempre en blanco: no se arrastran los datos del pedido
-    // anterior al cerrar y volver a abrir. Solo se conserva el idioma elegido.
+    // La app se abre siempre en blanco y en castellano (criterio de Andrés, 08-nov-2026): no se
+    // arrastran los datos del pedido anterior ni el idioma usado la última vez.
     localStorage.removeItem('modulbox_onyx_state');
-    const savedLang = localStorage.getItem('modulbox_onyx_lang');
-    if (savedLang) {
-      currentLang = savedLang;
-      switchLanguage(currentLang);
-    }
+    localStorage.removeItem('modulbox_onyx_lang');
   };
 
   const showNotification = (msg) => {
