@@ -293,10 +293,7 @@
 
 <body>
 <header>
-<svg width="46" height="34" viewBox="0 0 120 80">
-<ellipse cx="60" cy="40" rx="56" ry="30" fill="none" stroke="#fff" stroke-width="5"/>
-<path d="M14 40 Q60 18 106 40 Q60 62 14 40 Z" fill="#fff"/>
-</svg>
+<img src="icon-192.png" width="44" height="44" alt="" style="display:block; border-radius:10px; flex-shrink:0;">
 <div>
   <h1 id="txtTitleMain">Configurador MODULBOX Sombrex</h1>
   <span id="txtSubtitleMain"></span>
@@ -926,16 +923,29 @@ const App = (() => {
     if (!brazosOrdenados || !brazosOrdenados.length) return { error: 'sin_brazos' };
     let positions = [];
 
-    brazosOrdenados.forEach(b => {
-      if (tipo === 'B') {
-        positions.push(b.cota - SOPORTE_OFFSET, b.cota + SOPORTE_OFFSET);
-      } else {
-        const haciaCentro = b.cota <= L_mm / 2 ? SOPORTE_OFFSET : -SOPORTE_OFFSET;
-        positions.push(b.cota + haciaCentro);
+    // Tipo A: un soporte hacia el centro. Si dos brazos seguidos se miran (el de la izquierda pone su soporte a la
+    // derecha y el siguiente a la izquierda) y están a menos de 2·120 + 60, sus dos soportes se montarían entre sí o
+    // sobre el otro brazo (S 2250, L 6001, I-D-I-D: 2965 y 3036 con brazos en 2916 y 3085): va UNO en medio, y
+    // ninguno si ni así queda a 60 de los dos brazos (criterio de prueba de estrés, 09-nov-2026).
+    for (let i = 0; i < brazosOrdenados.length; i++) {
+      const b = brazosOrdenados[i];
+      if (tipo === 'B') { positions.push(b.cota - SOPORTE_OFFSET, b.cota + SOPORTE_OFFSET); continue; }
+      const haciaCentro = b.cota <= L_mm / 2 ? SOPORTE_OFFSET : -SOPORTE_OFFSET;
+      const sig = brazosOrdenados[i + 1];
+      if (haciaCentro > 0 && sig && sig.cota > L_mm / 2 && sig.cota - b.cota < 2 * SOPORTE_OFFSET + SOPORTE_SOLAPE) {
+        if (sig.cota - b.cota >= 2 * SOPORTE_SOLAPE) positions.push(Math.round((b.cota + sig.cota) / 2));
+        i++;
+        continue;
       }
-    });
+      positions.push(b.cota + haciaCentro);
+    }
 
     positions = [...new Set(positions.map(Math.round))].sort((a, b) => a - b);
+    // Dos soportes de pared de brazo a menos de SOPORTE_SOLAPE (p. ej. Tipo A con dos brazos divergentes
+    // juntos en el centro: S 2250, L 6000, I-D-I-D daba 2986 y 3014) se montan: uno solo a mitad de camino.
+    for (let i = 1; i < positions.length; i++) {
+      if (positions[i] - positions[i - 1] < SOPORTE_SOLAPE) { positions.splice(i - 1, 2, Math.round((positions[i - 1] + positions[i]) / 2)); i--; }
+    }
     if (!positions.length) return { error: 'sin_datos' };
 
     // Los de brazo no se mueven; los de extremo y de relleno se apartan del tejadillo/liras/inferior.
