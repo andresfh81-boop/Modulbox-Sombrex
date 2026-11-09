@@ -3962,12 +3962,14 @@ const App = (() => {
       if (idx === 0 || h.cota !== hitosIntermedios[idx-1].cota) hitosLimpios.push(h);
     });
 
-    // Cotas parciales entre hitos. La caja se ajusta al número; si no cabe sin pisar la anterior
-    // (tramos cortos), esa cota baja a una segunda fila justo debajo de la barra.
+    // Cotas parciales entre hitos (franja propia entre los soportes y la barra). La caja se ajusta
+    // al número y se dibuja AL FINAL del plano, encima de soportes y líneas, para que nada la tape.
+    // Si el número no cabe dentro de su tramo, o pisaría la cota anterior, baja a una fila bajo la
+    // barra (tantas filas como hagan falta), unida a su tramo con una línea fina. Nunca se recorta.
     const yCotaIntermedia = yBar - 15;
-    const yCotaIntermediaBajo = yBar + 19;
-    const finFilaCota = [-Infinity, -Infinity];
-    let hayFilaBajo = false;
+    const yCotaBajo = (k) => yBar + 21 + k * 18;
+    const finFilaArriba = { v: -Infinity };
+    const finFilasBajo = [];
     let lineasCota = '';
     let cajasCota = '';
     for (let i = 0; i < hitosLimpios.length - 1; i++) {
@@ -3976,21 +3978,28 @@ const App = (() => {
       const distReal = h2.cota - h1.cota;
       if (distReal <= 0) continue;
       const xMedio = (h1.x + h2.x) / 2;
-      const anchoCaja = Math.max(22, String(distReal).length * 6.4 + 8);
+      const anchoCaja = Math.max(24, String(distReal).length * 7.2 + 10);
       const ini = xMedio - anchoCaja / 2;
-      let fila = ini >= finFilaCota[0] + 2 ? 0 : (ini >= finFilaCota[1] + 2 ? 1 : 0);
-      finFilaCota[fila] = xMedio + anchoCaja / 2;
-      if (fila === 1) hayFilaBajo = true;
-      const y = fila === 0 ? yCotaIntermedia : yCotaIntermediaBajo;
-      lineasCota += `<line x1="${h1.x + 2}" y1="${y}" x2="${h2.x - 2}" y2="${y}" stroke="#4b5563" stroke-width="1" marker-start="url(#arrowStart)" marker-end="url(#arrowEnd)"/>`;
+      const cabeEnTramo = anchoCaja + 6 <= h2.x - h1.x;
+      lineasCota += `<line x1="${h1.x + 2}" y1="${yCotaIntermedia}" x2="${h2.x - 2}" y2="${yCotaIntermedia}" stroke="#4b5563" stroke-width="1" marker-start="url(#arrowStart)" marker-end="url(#arrowEnd)"/>`;
+      let y = yCotaIntermedia;
+      if (cabeEnTramo && ini >= finFilaArriba.v + 3) {
+        finFilaArriba.v = xMedio + anchoCaja / 2;
+      } else {
+        let k = finFilasBajo.findIndex(fin => ini >= fin + 3);
+        if (k === -1) { k = finFilasBajo.length; finFilasBajo.push(0); }
+        finFilasBajo[k] = xMedio + anchoCaja / 2;
+        y = yCotaBajo(k);
+        cajasCota += `<line x1="${xMedio}" y1="${yCotaIntermedia + 1}" x2="${xMedio}" y2="${y - 9}" stroke="#6b7280" stroke-width="0.9"/>`;
+      }
       cajasCota += `
-        <rect x="${ini}" y="${y - 9}" width="${anchoCaja}" height="15" rx="3" fill="#ffffff" stroke="#9ca3af" stroke-width="0.8"/>
-        <text x="${xMedio}" y="${y + 2}" text-anchor="middle" font-size="10" font-weight="700" fill="#374151">${distReal}</text>
+        <rect x="${ini}" y="${y - 10}" width="${anchoCaja}" height="17" rx="3" fill="#ffffff" stroke="#6b7280" stroke-width="0.9"/>
+        <text x="${xMedio}" y="${y + 3}" text-anchor="middle" font-size="11.5" font-weight="700" fill="#111827">${distReal}</text>
       `;
     }
-    imageElements += lineasCota + cajasCota;
-    // Si se usa la fila de debajo de la barra, la cota A y las etiquetas de cotas bajan para dejarle sitio.
-    const desplazFilaBajo = hayFilaBajo ? 18 : 0;
+    imageElements += lineasCota;
+    // Si se usan filas bajo la barra, la cota A y las etiquetas de cotas bajan para dejarles sitio.
+    const desplazFilaBajo = finFilasBajo.length * 18;
     baseCotaY += desplazFilaBajo;
 
     listaParedesConEscala.forEach((sup) => {
@@ -4272,6 +4281,7 @@ const App = (() => {
         <text x="${marginLeft - (motor === 'izq' ? 60 : 18)}" y="${yBar + 5}" text-anchor="end" font-size="14" font-weight="bold" fill="#111827">0</text>
         <text x="${marginLeft + usableWidth + (motor === 'der' ? 60 : 18)}" y="${yBar + 5}" text-anchor="start" font-size="14" font-weight="bold" fill="#111827">${L}</text>
         ${imageElements}
+        ${cajasCota}
       </svg>
     `;
 
