@@ -299,7 +299,7 @@
 </svg>
 <div>
   <h1 id="txtTitleMain">Configurador MODULBOX Sombrex</h1>
-  <span id="txtSubtitleMain">Brazos a Escala Real Onyx (+100mm) con simulación visual de cruce e impacto</span>
+  <span id="txtSubtitleMain"></span>
 </div>
 <div class="lang-switcher">
   <button id="btnLangES" class="lang-btn active">ES</button>
@@ -964,6 +964,26 @@ const App = (() => {
   // centros): se aparta hasta 30 mm de él, primero hacia el centro de la línea y, si ahí choca, hacia el
   // extremo, sin meterse en el soporte motor/punta (22 mm tras la tapa) ni a menos de 30 mm de su cara
   // interior (criterio de Andrés, 26-oct-2026). Si no cabe en ningún lado, se deja y el plano avisa.
+  // Al revés que apartarDePerfiles: un soporte de tejadillo/lira (T) o de perfil inferior (I) del reparto
+  // AUTOMÁTICO que cae a menos de 30 mm (entre centros) de un soporte de pared o brazo se aparta a 30 mm de él,
+  // al lado más cercano que quede libre, sin meterse en el soporte motor/punta (criterio de Andrés, 09-nov-2026:
+  // los soportes de pared de los brazos son fijos y antes salía «I3 ↔ SP4: 26 mm»). Las cotas escritas mandan.
+  const apartarPerfilDeSoportes = (pos, obst, L_mm, tapa) => {
+    if (!obst.length) return pos;
+    const minC = tapa + SOPORTE_MOTOR_PUNTA + DESPLAZ_BRAZO_PERFIL, maxC = L_mm - minC;
+    const out = pos.slice();
+    out.forEach((p, i) => {
+      if (!obst.some(o => Math.abs(o - p) < DESPLAZ_BRAZO_PERFIL)) return;
+      const otros = out.filter((_, j) => j !== i);
+      const nuevo = obst.flatMap(o => [o - DESPLAZ_BRAZO_PERFIL, o + DESPLAZ_BRAZO_PERFIL])
+        .sort((a, b) => Math.abs(a - p) - Math.abs(b - p))
+        .find(c => c >= minC && c <= maxC && obst.every(o => Math.abs(o - c) >= DESPLAZ_BRAZO_PERFIL)
+          && otros.every(o => Math.abs(o - c) >= DESPLAZ_BRAZO_PERFIL));
+      if (nuevo != null) out[i] = Math.round(nuevo);
+    });
+    return out;
+  };
+
   const apartarDePerfiles = (positions, fijos, perfilPos, cotasBrazo, L_mm, tapa) => {
     if (!perfilPos.length) return positions;
     const minCota = tapa + SOPORTE_MOTOR_PUNTA + DESPLAZ_BRAZO_PERFIL;
@@ -1412,7 +1432,7 @@ const App = (() => {
   const i18n = {
     es: {
       titleMain: "Configurador MODULBOX Sombrex",
-      subtitleMain: "Brazos a Escala Real Onyx (+100mm) con simulación visual de cruce e impacto",
+      subtitleMain: "",
       offlineMsg: "Sin conexión — la app sigue funcionando con los datos guardados en el dispositivo.",
       installMsg: "Instala esta app en tu móvil para usarla sin conexión.",
       installBtn: "Instalar",
@@ -1546,7 +1566,7 @@ const App = (() => {
     },
     en: {
       titleMain: "MODULBOX Sombrex Configurator",
-      subtitleMain: "Onyx real-scale arms (+100mm) with visual cross and collision simulation",
+      subtitleMain: "",
       offlineMsg: "Offline — the app keeps working with the data saved on this device.",
       installMsg: "Install this app on your phone to use it offline.",
       installBtn: "Install",
@@ -1680,7 +1700,7 @@ const App = (() => {
     },
     fr: {
       titleMain: "Configurateur MODULBOX Sombrex",
-      subtitleMain: "Bras Onyx à échelle réelle (+100mm) avec simulation visuelle de croisement et de collision",
+      subtitleMain: "",
       offlineMsg: "Hors ligne — l'application continue de fonctionner avec les données enregistrées sur cet appareil.",
       installMsg: "Installez cette application sur votre mobile pour l'utiliser hors ligne.",
       installBtn: "Installer",
@@ -1814,7 +1834,7 @@ const App = (() => {
     },
     de: {
       titleMain: "MODULBOX Sombrex Konfigurator",
-      subtitleMain: "Onyx-Arme in Originalgröße (+100mm) mit visueller Kreuzungs- und Kollisionssimulation",
+      subtitleMain: "",
       offlineMsg: "Offline — die App funktioniert weiterhin mit den auf diesem Gerät gespeicherten Daten.",
       installMsg: "Installieren Sie diese App auf Ihrem Handy, um sie offline zu nutzen.",
       installBtn: "Installieren",
@@ -1948,7 +1968,7 @@ const App = (() => {
     },
     it: {
       titleMain: "Configuratore MODULBOX Sombrex",
-      subtitleMain: "Bracci Onyx a scala reale (+100mm) con simulazione visiva di incrocio e collisione",
+      subtitleMain: "",
       offlineMsg: "Offline — l'app continua a funzionare con i dati salvati sul dispositivo.",
       installMsg: "Installa questa app sul tuo cellulare per usarla offline.",
       installBtn: "Installa",
@@ -2082,7 +2102,7 @@ const App = (() => {
     },
     pt: {
       titleMain: "Configurador MODULBOX Sombrex",
-      subtitleMain: "Braços Onyx em escala real (+100mm) com simulação visual de cruzamento e colisão",
+      subtitleMain: "",
       offlineMsg: "Sem ligação — a aplicação continua a funcionar com os dados guardados neste dispositivo.",
       installMsg: "Instale esta aplicação no seu telemóvel para a usar sem ligação.",
       installBtn: "Instalar",
@@ -3641,7 +3661,8 @@ const App = (() => {
       const sugerido = (activo && L > 0) ? sugeridoFn() : 0;
       numRef.placeholder = sugerido ? `${t3('Sugerido', 'Suggested', 'Suggéré', 'Vorschlag', 'Suggerito', 'Sugerido')}: ${sugerido}` : '';
       const n = activo ? (numRef.value !== '' ? Math.max(0, +numRef.value) : sugerido) : 0;
-      const auto = (activo && L > 0) ? posicionesEquidistantes(L, n, grosorTapa) : [];
+      const auto = (activo && L > 0)
+        ? apartarPerfilDeSoportes(posicionesEquidistantes(L, n, grosorTapa), [...paredes, ...brazos.map(b => b.cota)], L, grosorTapa) : [];
       const manual = activo ? parseCotas(cotasRef.value, L) : [];
       return { activo, n, posiciones: manual.length ? manual : auto, auto };
     };
