@@ -897,7 +897,9 @@ const App = (() => {
   const SOPORTE_SOLAPE = 60;       // mm, dos soportes de pared/brazo a menos de esto entre centros se montan (aviso INTERFERENCIA del plano)
   const SOPORTE_MOTOR_PUNTA = 22;  // mm, soporte motor/punta justo después de la tapa
   const SOPORTE_GAP_MAX = 2000;    // mm, ningún hueco entre soportes de pared puede superar esto (líneas largas)
-  const SOPORTE_BORDE_MIN_TALLER = 30; // mm, mínimo desde el borde de la barra sin tapa (cota taller) a un soporte de pared
+  // mm, mínimo desde el borde de la barra sin tapa (cota taller) al CENTRO de un soporte de pared: soporte motor/punta
+  // (22) + medio soporte de pared (30) = 52, para que no se monte en el soporte motor/punta (Andrés, 09-nov-2026; antes 30).
+  const SOPORTE_BORDE_MIN_TALLER = SOPORTE_MOTOR_PUNTA + 30;
 
   // Reparte huecos > maxGap añadiendo soportes intermedios equidistantes dentro de ese hueco.
   const rellenarHuecosGrandes = (posicionesOrdenadas, maxGap) => {
