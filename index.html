@@ -3711,13 +3711,14 @@ const App = (() => {
       if (aInv && bInv) {
         nec = (brazoRep * 2) + CODO_MIN + holgura;
         tipo = t3('enfrentados → hueco DOBLE', 'facing → DOUBLE gap', 'opposés → espace DOUBLE', 'gegenüberliegend → DOPPELTE Lücke', 'contrapposti → spazio DOPPIO', 'frente a frente → espaço DUPLO');
-        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo B${a.n} – Codo B${b.n}`, valor: Math.round(sep - brazoRep * 2) });
+        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo B${a.n} – Codo B${b.n}`, valor: Math.round(sep - brazoRep * 2), c1: a.cota + brazoRep, c2: b.cota - brazoRep });
       } else if (aInv || bInv) {
         nec = brazoRep + ANCHO_SOPORTE_BRAZO / 2 + CODO_MIN + holgura;
         tipo = t3('un brazo en el hueco', 'one arm in gap', 'un bras dans l\'espace', 'ein Arm in der Lücke', 'un braccio nello spazio', 'um braço no espaço');
         const pFolded = aInv ? a.n : b.n;
         const pFijo = aInv ? b.n : a.n;
-        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo B${pFolded} – Soporte B${pFijo}`, valor: Math.round(sep - brazoRep - ANCHO_SOPORTE_BRAZO / 2) });
+        medidasCodo.push({ a: a.n, b: b.n, texto: `Codo B${pFolded} – Soporte B${pFijo}`, valor: Math.round(sep - brazoRep - ANCHO_SOPORTE_BRAZO / 2),
+          c1: aInv ? a.cota + brazoRep : a.cota + ANCHO_SOPORTE_BRAZO / 2, c2: aInv ? b.cota - ANCHO_SOPORTE_BRAZO / 2 : b.cota - brazoRep });
       } else {
         nec = ANCHO_SOPORTE_BRAZO + CODO_MIN + holgura;
         tipo = t3('divergentes', 'diverging', 'divergents', 'divergierend', 'divergenti', 'divergentes');
@@ -4046,7 +4047,10 @@ const App = (() => {
       const yEjeBrazoReal = yBase + (altoBrazo * f) - (6 * f); 
       const largoBrazoRealEscalado = brazoRep * scale; 
       
-      const xInicioBrazo = xEje;
+      // El brazo se dibuja desde el CENTRO del soporte (la cota) hasta el codo, a escala real: así el
+      // hueco entre codos del plano es el de verdad (antes empezaba en el eje de la cabeza, ~21 px más allá,
+      // y dos brazos enfrentados con 62 mm entre codos parecían chocar).
+      const xInicioBrazo = x;
       const xFinBrazo = esDerecho ? xInicioBrazo - largoBrazoRealEscalado : xInicioBrazo + largoBrazoRealEscalado;
 
       imageElements += `
@@ -4080,6 +4084,28 @@ const App = (() => {
         `;
       }
     });
+
+    // Medida de control en el plano: hueco libre entre codos (o codo–borde del soporte vecino), a la altura de
+    // los brazos plegados. Solo pantalla, como las medidas de control (clase medida-control: no sale al imprimir
+    // ni en PDF/PNG). Rojo si es menor de CODO_MIN.
+    {
+      const yBaseB = yBar - 132 - (altoBrazo * factorEscalaGlobal);
+      const yEje = yBaseB + (altoBrazo * factorEscalaGlobal) - (6 * factorEscalaGlobal);
+      const yC = yEje - 16 * factorEscalaGlobal;
+      medidasCodo.filter(m => m.c1 != null).forEach(m => {
+        const x1 = marginLeft + m.c1 * scale, x2 = marginLeft + m.c2 * scale, xm = (x1 + x2) / 2;
+        const col = m.valor < CODO_MIN ? '#dc2626' : '#a33';
+        const txt = `${m.valor} mm`, w = txt.length * 6.6 + 10;
+        imageElements += `<g class="medida-control">
+          <line x1="${x1}" y1="${yEje - 8}" x2="${x1}" y2="${yC - 4}" stroke="${col}" stroke-width="1"/>
+          <line x1="${x2}" y1="${yEje - 8}" x2="${x2}" y2="${yC - 4}" stroke="${col}" stroke-width="1"/>
+          <line x1="${x1}" y1="${yC}" x2="${x2}" y2="${yC}" stroke="${col}" stroke-width="1.2"/>
+          <line x1="${xm}" y1="${yC}" x2="${xm}" y2="${yC - 8}" stroke="${col}" stroke-width="0.8"/>
+          <rect x="${xm - w / 2}" y="${yC - 23}" width="${w}" height="15" rx="3" fill="#fff6f6" stroke="${col}" stroke-width="1" stroke-dasharray="3 2"/>
+          <text x="${xm}" y="${yC - 12}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${col}">${txt}</text>
+        </g>`;
+      });
+    }
 
     // Cota entre soportes brazo, de centro a centro, en una fila por encima de las etiquetas P.
     const brazosPorCota = [...listaBrazosConEscala].sort((a, b) => a.cota - b.cota);
