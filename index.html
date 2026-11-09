@@ -585,18 +585,22 @@
 <script>
 const App = (() => {
 
+  // Brazo plegado Onyx, del CENTRO del soporte brazo al codo, menos 100 (los suma getBrazoPlegadoReal).
+  // Medida real (Andrés, 09-nov-2026): salida 3,5 = 1932 mm del borde exterior del soporte al codo
+  // → 1902 del centro, 80 mm más que la tabla antigua (salida/2 − 28). Provisional: se suman esos
+  // 80 mm a todas las salidas hasta medirlas una a una.
   const brazoPlegadoMap = {
-    1500: 722,
-    1750: 847,
-    2000: 972,
-    2250: 1097,
-    2500: 1222,
-    2750: 1347,
-    3000: 1472,
-    3250: 1597,
-    3500: 1722,
-    3750: 1847,
-    4000: 1972
+    1500: 802,
+    1750: 927,
+    2000: 1052,
+    2250: 1177,
+    2500: 1302,
+    2750: 1427,
+    3000: 1552,
+    3250: 1677,
+    3500: 1802,   // medida real
+    3750: 1927,
+    4000: 2052
   };
 
   const getBrazoPlegadoReal = (salida) => {
